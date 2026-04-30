@@ -6,8 +6,5 @@
     "name": "flame91"
   },
   "license": "CC-BY-SA-4.0",
-  "keywords": ["vocabulary", "language-learning", "cefr"],
-  "skills": "./skills/",
-  "commands": "./commands/",
-  "hooks": "./hooks/hooks.json"
+  "keywords": ["vocabulary", "language-learning", "cefr"]
 }
