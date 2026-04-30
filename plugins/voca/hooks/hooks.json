@@ -1,13 +1,16 @@
 {
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "${CLAUDE_PLUGIN_ROOT}/hooks/vocab-extract.sh"
-        }
-      ]
-    }
-  ]
+  "description": "Stop hook that auto-extracts candidate vocabulary words from each session.",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/vocab-extract.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
