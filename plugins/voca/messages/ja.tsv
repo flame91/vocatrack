@@ -1,0 +1,9 @@
+profile.empty	未測定 — /voca level で開始してください。
+level.show.percentile_ref	参考: %s
+stage1.result	Stage 1 (%s): 約%s 推定。Stage 2 band [%s, %s] へ進行。
+level.final.estimate	%s 推定語彙 %s (%s)。%s probes, %s known.
+level.final.native_ref	Native 分布参考: %s。
+level.final.stage3_recommend	Stage 3 推奨 — プール上限 saturate。/voca level test %s --stage 3 で精密測定。
+level.reset.no_profile	プロファイル無し — reset 不要。
+level.reset.all	プロファイル全言語の測定データを初期化。
+level.reset.lang	%s 測定データを初期化。

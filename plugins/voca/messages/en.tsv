@@ -1,0 +1,9 @@
+profile.empty	not measured — start with /voca level.
+level.show.percentile_ref	ref: %s
+stage1.result	Stage 1 (%s): ~%s estimate. Proceeding to Stage 2 band [%s, %s].
+level.final.estimate	%s estimated vocabulary %s (%s). %s probes, %s known.
+level.final.native_ref	Native distribution ref: %s.
+level.final.stage3_recommend	Stage 3 recommended — pool ceiling saturated. Run /voca level test %s --stage 3 for refinement.
+level.reset.no_profile	No profile — reset not needed.
+level.reset.all	Reset all language profile measurements.
+level.reset.lang	%s measurement data reset.

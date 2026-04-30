@@ -1,0 +1,13 @@
+{
+  "name": "flame91-voca-marketplace",
+  "owner": {
+    "name": "flame91"
+  },
+  "plugins": [
+    {
+      "name": "voca",
+      "source": "./plugins/voca",
+      "description": "Local-first vocabulary tracker (en/ja/ko)"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+voca — Local-first vocabulary tracker
+=====================================
+
+This plugin bundles derivative wordlist data from the following sources, all
+licensed under terms compatible with the plugin's CC BY-SA 4.0 license:
+
+1. hermitdave / FrequencyWords (OpenSubtitles 2018 word frequencies)
+   - URL:     https://github.com/hermitdave/FrequencyWords
+   - License: CC BY-SA 4.0
+   - Used in: en/ja/ko probes (base layer)
+
+2. Wikipedia article titles (Korean, English)
+   - URL:     https://dumps.wikimedia.org/
+   - License: CC BY-SA 4.0
+   - Used in: ko.rare.tsv, en.rare.tsv (specialized vocabulary)
+
+3. NINJAL Balanced Corpus of Contemporary Written Japanese (BCCWJ)
+   - Short Unit Word frequency list
+   - URL:     https://clrd.ninjal.ac.jp/bccwj/
+   - License: redistribution permitted under NINJAL terms (see NINJAL docs)
+   - Used in: ja.rare.tsv
+
+CEFR vocabulary thresholds reference Council of Europe / Milton (2009).
+Native percentile bands reference:
+  - Korean: 김광해 (2003) "한국어 어휘 빈도조사" / 국립국어원
+  - Japanese: NTT 語彙数推定テスト 補正版
+  - English: testyourvocab.com (2013, 2M+ samples)
+
+Each upstream source retains its own license; modifications and derivations
+in this repository are released under CC BY-SA 4.0 to maintain compatibility.

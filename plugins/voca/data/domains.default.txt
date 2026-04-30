@@ -1,0 +1,8 @@
+software blue
+science green
+business orange
+language purple
+culture pink
+medical red
+finance yellow
+misc gray

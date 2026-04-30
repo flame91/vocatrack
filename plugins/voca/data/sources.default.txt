@@ -1,0 +1,6 @@
+software blue
+science green
+business orange
+language purple
+culture pink
+misc gray

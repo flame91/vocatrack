@@ -1,0 +1,9 @@
+profile.empty	미측정 — /voca level 로 시작하세요.
+level.show.percentile_ref	참고: %s
+stage1.result	Stage 1 (%s): ~%s 추정. Stage 2 band [%s, %s] 진행.
+level.final.estimate	%s 추정 어휘 %s (%s). %s probes, %s known.
+level.final.native_ref	Native 분포 참고: %s.
+level.final.stage3_recommend	Stage 3 권장 — 풀 상한 saturate. /voca level test %s --stage 3 로 정밀 측정.
+level.reset.no_profile	Profile 없음 — reset 불필요.
+level.reset.all	Profile 전체 언어 측정 데이터 초기화.
+level.reset.lang	%s 측정 데이터 초기화.
