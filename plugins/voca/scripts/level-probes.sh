@@ -76,9 +76,9 @@ fi
 #      Stage 2 against Stage 1 picks within the same test session).
 EXCL_FILE=$(mktemp "${TMPDIR:-/tmp}/voca-excl.XXXXXX") || exit 1
 trap 'rm -f "$EXCL_FILE"' EXIT
-awk -F'\t' -v l="$LANG_ARG" '
-  NR>1 && $1!="" && $2==l && ($13=="mastered" || $12=="memorized") {
-    print tolower($1)
+awk -F'\t' $AWK_COL_VARS -v l="$LANG_ARG" '
+  NR>1 && $C_WORD!="" && $C_LANG==l && ($C_STATUS=="mastered" || $C_RATING=="memorized") {
+    print tolower($C_WORD)
   }
 ' "$WORDS_TSV" 2>/dev/null > "$EXCL_FILE"
 if [[ -n "$EXCLUDE_WORDS" ]]; then

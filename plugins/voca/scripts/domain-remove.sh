@@ -21,22 +21,21 @@ grep -v "^${NAME} " "$DOMAINS_TXT" > "$tmp" && mv "$tmp" "$DOMAINS_TXT"
 lock_acquire || exit 1
 trap lock_release EXIT
 
-atomic_rewrite "$WORDS_TSV" -v n="$NAME" '
+atomic_rewrite "$WORDS_TSV" $AWK_COL_VARS -v n="$NAME" '
   NR == 1 { print; next }
   {
-    d = $7
+    d = $C_DOMAIN
     if (d == "" || d == "[]") { print; next }
-    # Naive: remove "name" entry from JSON array string
-    gsub("\""n"\",", "", d)
-    gsub(",\""n"\"", "", d)
-    gsub("\""n"\"", "", d)
-    gsub(",,", ",", d)
-    gsub("\\[,", "[", d)
-    gsub(",\\]", "]", d)
-    if (d == "[]" || d == "[ ]") d = "[]"
-    $7 = d
+    cmd = "printf %s " q(d) " | jq -c --arg n " q(n) " \047map(select(. != $n))\047 2>/dev/null"
+    if ((cmd | getline result) > 0) {
+      d = result
+    }
+    close(cmd)
+    if (d == "[]" || d == "") d = "[]"
+    $C_DOMAIN = d
     print
   }
+  function q(s) { gsub(/\047/, "\047\\\047\047", s); return "\047" s "\047" }
 '
 
 echo "Removed domain \"$NAME\"."

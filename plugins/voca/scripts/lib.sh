@@ -27,6 +27,18 @@ else
   STATE_DIR="$HOME/.claude/state"
 fi
 
+# Guard: if STATE_DIR has no voca.tsv but another voca-* dir does, warn and redirect.
+if [[ ! -f "$STATE_DIR/voca.tsv" && -z "${VOCA_STATE_DIR:-}" ]]; then
+  for _d in "$HOME/.claude/plugins/data"/voca-*; do
+    if [[ -f "$_d/voca.tsv" ]]; then
+      echo "voca: warning — data found in $_d instead of $STATE_DIR; set VOCA_STATE_DIR to fix" >&2
+      STATE_DIR="$_d"
+      break
+    fi
+  done
+  unset _d
+fi
+
 MESSAGES_DIR="$PLUGIN_ROOT/messages"
 WORDLISTS_DIR="$PLUGIN_ROOT/scripts/wordlists"
 SEEDS_DIR="$PLUGIN_ROOT/data"
@@ -48,6 +60,13 @@ SOURCES_TXT="$STATE_DIR/sources.txt"
 
 WORDS_HEADER=$'word\tlang\tmeaning\texample\tcontext\tsource\tdomain\tseen_count\tfirst_seen_at\tlast_seen_at\tadded_via\tuser_rating\tstatus\tuser_note\tmastered_at\tarchived_at'
 LOG_HEADER=$'candidate\textracted_at\taccepted\trejected_reason\tcommand_used\thook_latency_ms\tlang_guess\tsession_hint'
+
+# Column indices for voca.tsv — use via $AWK_COL_VARS in awk invocations.
+C_WORD=1  C_LANG=2  C_MEANING=3  C_EXAMPLE=4  C_CONTEXT=5  C_SOURCE=6
+C_DOMAIN=7  C_SEEN=8  C_FIRST_SEEN=9  C_LAST_SEEN=10  C_VIA=11
+C_RATING=12  C_STATUS=13  C_NOTE=14  C_MASTERED_AT=15  C_ARCHIVED_AT=16
+NUM_COLS=16
+AWK_COL_VARS="-v C_WORD=$C_WORD -v C_LANG=$C_LANG -v C_MEANING=$C_MEANING -v C_EXAMPLE=$C_EXAMPLE -v C_CONTEXT=$C_CONTEXT -v C_SOURCE=$C_SOURCE -v C_DOMAIN=$C_DOMAIN -v C_SEEN=$C_SEEN -v C_FIRST_SEEN=$C_FIRST_SEEN -v C_LAST_SEEN=$C_LAST_SEEN -v C_VIA=$C_VIA -v C_RATING=$C_RATING -v C_STATUS=$C_STATUS -v C_NOTE=$C_NOTE -v C_MASTERED_AT=$C_MASTERED_AT -v C_ARCHIVED_AT=$C_ARCHIVED_AT -v NCOLS=$NUM_COLS"
 
 mkdir -p "$STATE_DIR" 2>/dev/null || true
 

@@ -30,25 +30,25 @@ date_offset() {
 }
 
 # --- 1. Lifecycle ----------------------------------------------------------
-TOTAL=$(awk -F'\t'    'NR>1 && $1!=""' "$WORDS_TSV" | wc -l | tr -d ' ')
-ACTIVE=$(awk -F'\t'   'NR>1 && $1!="" && ($13=="active" || $13=="")' "$WORDS_TSV" | wc -l | tr -d ' ')
-MASTERED=$(awk -F'\t' 'NR>1 && $13=="mastered"' "$WORDS_TSV" | wc -l | tr -d ' ')
-ARCHIVED=$(awk -F'\t' 'NR>1 && $13=="archived"' "$WORDS_TSV" | wc -l | tr -d ' ')
+TOTAL=$(awk -F'\t' $AWK_COL_VARS    'NR>1 && $C_WORD!=""' "$WORDS_TSV" | wc -l | tr -d ' ')
+ACTIVE=$(awk -F'\t' $AWK_COL_VARS   'NR>1 && $C_WORD!="" && ($C_STATUS=="active" || $C_STATUS=="")' "$WORDS_TSV" | wc -l | tr -d ' ')
+MASTERED=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_STATUS=="mastered"' "$WORDS_TSV" | wc -l | tr -d ' ')
+ARCHIVED=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_STATUS=="archived"' "$WORDS_TSV" | wc -l | tr -d ' ')
 
 # --- 2. Rating -------------------------------------------------------------
-MEMORIZED=$(awk -F'\t' 'NR>1 && $12=="memorized"' "$WORDS_TSV" | wc -l | tr -d ' ')
-LEARNING=$(awk  -F'\t' 'NR>1 && $12=="learning"'  "$WORDS_TSV" | wc -l | tr -d ' ')
-UNSURE=$(awk    -F'\t' 'NR>1 && $12=="unsure"'    "$WORDS_TSV" | wc -l | tr -d ' ')
-UNRATED=$(awk   -F'\t' 'NR>1 && $1!="" && $12==""' "$WORDS_TSV" | wc -l | tr -d ' ')
+MEMORIZED=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_RATING=="memorized"' "$WORDS_TSV" | wc -l | tr -d ' ')
+LEARNING=$(awk  -F'\t' $AWK_COL_VARS 'NR>1 && $C_RATING=="learning"'  "$WORDS_TSV" | wc -l | tr -d ' ')
+UNSURE=$(awk    -F'\t' $AWK_COL_VARS 'NR>1 && $C_RATING=="unsure"'    "$WORDS_TSV" | wc -l | tr -d ' ')
+UNRATED=$(awk   -F'\t' $AWK_COL_VARS 'NR>1 && $C_WORD!="" && $C_RATING==""' "$WORDS_TSV" | wc -l | tr -d ' ')
 
 # --- 3. Daily activity (last 7 days) --------------------------------------
 DATES=()
 for i in 6 5 4 3 2 1 0; do DATES+=("$(date_offset $i)"); done
 ADDED_COUNTS=();   MASTERED_COUNTS=();   ARCHIVED_COUNTS=()
 for d in "${DATES[@]}"; do
-  ADDED_COUNTS+=($(awk    -F'\t' -v d="$d" 'NR>1 && $9==d'  "$WORDS_TSV" | wc -l | tr -d ' '))
-  MASTERED_COUNTS+=($(awk -F'\t' -v d="$d" 'NR>1 && $15==d' "$WORDS_TSV" | wc -l | tr -d ' '))
-  ARCHIVED_COUNTS+=($(awk -F'\t' -v d="$d" 'NR>1 && $16==d' "$WORDS_TSV" | wc -l | tr -d ' '))
+  ADDED_COUNTS+=($(awk    -F'\t' $AWK_COL_VARS -v d="$d" 'NR>1 && $C_FIRST_SEEN==d'  "$WORDS_TSV" | wc -l | tr -d ' '))
+  MASTERED_COUNTS+=($(awk -F'\t' $AWK_COL_VARS -v d="$d" 'NR>1 && $C_MASTERED_AT==d' "$WORDS_TSV" | wc -l | tr -d ' '))
+  ARCHIVED_COUNTS+=($(awk -F'\t' $AWK_COL_VARS -v d="$d" 'NR>1 && $C_ARCHIVED_AT==d' "$WORDS_TSV" | wc -l | tr -d ' '))
 done
 ADDED_SUM=$(sum "${ADDED_COUNTS[@]}")
 MASTERED_SUM=$(sum "${MASTERED_COUNTS[@]}")
@@ -69,14 +69,14 @@ for ((i = ${#MASTERED_COUNTS[@]} - 1; i >= 0; i--)); do
 done
 
 # --- 6. Time-to-master (avg days from first_seen_at -> mastered_at) ------
-TTM=$(awk -F'\t' '
+TTM=$(awk -F'\t' $AWK_COL_VARS '
   function to_epoch(d,    cmd, e) {
     cmd = "date -u -j -f %Y-%m-%d \"" d "\" +%s 2>/dev/null"
     cmd | getline e; close(cmd)
     return e
   }
-  NR>1 && $13=="mastered" && $9!="" && $15!="" {
-    a = to_epoch($9); b = to_epoch($15)
+  NR>1 && $C_STATUS=="mastered" && $C_FIRST_SEEN!="" && $C_MASTERED_AT!="" {
+    a = to_epoch($C_FIRST_SEEN); b = to_epoch($C_MASTERED_AT)
     if (a > 0 && b >= a) { total += (b - a) / 86400; count++ }
   }
   END {
@@ -86,18 +86,18 @@ TTM=$(awk -F'\t' '
 ' "$WORDS_TSV")
 
 # --- 7. Top domains / sources / lang ---------------------------------------
-TOP_DOMAINS=$(awk -F'\t' 'NR>1 && $7!="" && $7!="[]" { print $7 }' "$WORDS_TSV" \
+TOP_DOMAINS=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_DOMAIN!="" && $C_DOMAIN!="[]" { print $C_DOMAIN }' "$WORDS_TSV" \
   | jq -r '.[]?' 2>/dev/null \
   | sort | uniq -c | sort -rn | head -5 \
   | awk '{ printf "  %-12s %d\n", $2, $1 }')
 [[ -z "$TOP_DOMAINS" ]] && TOP_DOMAINS="  (none)"
 
-TOP_SOURCES=$(awk -F'\t' 'NR>1 && $6!="" { print $6 }' "$WORDS_TSV" \
+TOP_SOURCES=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_SOURCE!="" { print $C_SOURCE }' "$WORDS_TSV" \
   | sort | uniq -c | sort -rn | head -5 \
   | awk '{ printf "  %-12s %d\n", $2, $1 }')
 [[ -z "$TOP_SOURCES" ]] && TOP_SOURCES="  (none)"
 
-LANG_DIST=$(awk -F'\t' 'NR>1 && $2!="" { print $2 }' "$WORDS_TSV" \
+LANG_DIST=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_LANG!="" { print $C_LANG }' "$WORDS_TSV" \
   | sort | uniq -c | sort -rn \
   | awk '{ printf "  %-6s %d\n", $2, $1 }')
 [[ -z "$LANG_DIST" ]] && LANG_DIST="  (none)"
@@ -129,10 +129,10 @@ if (( LAT_COUNT > 0 )); then
 fi
 
 # --- 9. added_via ratio ----------------------------------------------------
-VIA_AUTO=$(awk -F'\t'   'NR>1 && $11=="auto-hook"' "$WORDS_TSV" | wc -l | tr -d ' ')
-VIA_MANUAL=$(awk -F'\t' 'NR>1 && $11=="manual"'    "$WORDS_TSV" | wc -l | tr -d ' ')
-VIA_REVIEW=$(awk -F'\t' 'NR>1 && $11=="review"'    "$WORDS_TSV" | wc -l | tr -d ' ')
-VIA_IMPORT=$(awk -F'\t' 'NR>1 && $11=="import"'    "$WORDS_TSV" | wc -l | tr -d ' ')
+VIA_AUTO=$(awk -F'\t' $AWK_COL_VARS   'NR>1 && $C_VIA=="auto-hook"' "$WORDS_TSV" | wc -l | tr -d ' ')
+VIA_MANUAL=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_VIA=="manual"'    "$WORDS_TSV" | wc -l | tr -d ' ')
+VIA_REVIEW=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_VIA=="review"'    "$WORDS_TSV" | wc -l | tr -d ' ')
+VIA_IMPORT=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_VIA=="import"'    "$WORDS_TSV" | wc -l | tr -d ' ')
 
 # --- 10. command distribution (last 14d) -----------------------------------
 COMMANDS_DIST=$(awk -F'\t' -v c="$CUTOFF" 'NR>1 && substr($2,1,10) >= c && $5!="" {print $5}' "$LOG_TSV" \
@@ -147,12 +147,12 @@ REJECT_REASONS=$(awk -F'\t' -v c="$CUTOFF" 'NR>1 && substr($2,1,10) >= c && $4!=
 [[ -z "$REJECT_REASONS" ]] && REJECT_REASONS="    (none)"
 
 # --- 12. top by seen_count -------------------------------------------------
-TOP_SEEN=$(awk -F'\t' 'NR>1 && $1!=""' "$WORDS_TSV" | sort -t$'\t' -k8,8nr | head -5 \
-  | awk -F'\t' '{ printf "  %-15s %d×\n", $1, $8 }')
+TOP_SEEN=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_WORD!=""' "$WORDS_TSV" | sort -t$'\t' -k${C_SEEN},${C_SEEN}nr | head -5 \
+  | awk -F'\t' $AWK_COL_VARS '{ printf "  %-15s %d×\n", $C_WORD, $C_SEEN }')
 [[ -z "$TOP_SEEN" ]] && TOP_SEEN="  (none)"
 
 # --- 13. stale active (>14d since last_seen_at) ----------------------------
-STALE=$(awk -F'\t' -v c="$CUTOFF" 'NR>1 && ($13=="active" || $13=="") && $10!="" && $10 < c { print $1 "\t" $10 }' "$WORDS_TSV" \
+STALE=$(awk -F'\t' $AWK_COL_VARS -v c="$CUTOFF" 'NR>1 && ($C_STATUS=="active" || $C_STATUS=="") && $C_LAST_SEEN!="" && $C_LAST_SEEN < c { print $C_WORD "\t" $C_LAST_SEEN }' "$WORDS_TSV" \
   | sort -t$'\t' -k2 | head -5 \
   | awk -F'\t' '{ printf "  %-15s last seen %s\n", $1, $2 }')
 [[ -z "$STALE" ]] && STALE="  (none — all active words seen within 14d)"

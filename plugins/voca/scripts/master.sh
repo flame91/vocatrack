@@ -15,9 +15,9 @@ lock_acquire || exit 1
 trap lock_release EXIT
 
 TODAY=$(today)
-atomic_rewrite "$WORDS_TSV" -v w="$WORD" -v t="$TODAY" '
+atomic_rewrite "$WORDS_TSV" $AWK_COL_VARS -v w="$WORD" -v t="$TODAY" '
   NR == 1 { print; next }
-  tolower($1) == tolower(w) { NF = 16; $13 = "mastered"; $15 = t; print; next }
+  tolower($C_WORD) == tolower(w) { NF = NCOLS; $C_STATUS = "mastered"; $C_MASTERED_AT = t; print; next }
   { print }
 '
 

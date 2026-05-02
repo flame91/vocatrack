@@ -232,7 +232,7 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
    Subagent responsibilities:
    - For each accepted word-option: run **Add workflow** with `added_via:"auto-hook"`, tags inferred from hint+context.
    - For each unselected word-option: append a row to `voca-candidates-log.tsv` with `accepted=0`, `command_used="voca-add"`, and `rejected_reason`:
-     - if the user selected the `[queue.select_all_known]` option (only on the last question's last slot) → `"user marked as already known via picker"` for the unselected words **on that last question**
+     - if the user selected the `[queue.select_all_known]` option (on the last question's last slot) → `"user marked as already known via picker"` for **all unselected words across all questions in this round** (not just the last question — the option is page-wide)
      - otherwise → `"user skipped via /voca queue UI"`
    - Remove all 15 shown candidates (regardless of selection) from `voca-candidates.json`.
    - Reply 1 line. Split rejected into knew vs skip when both exist: `Accepted: A (tag1,tag2), B. Rejected (knew): C, D. Rejected (skip): E. Queue: N remaining.` Omit the empty groups.

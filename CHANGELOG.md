@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.9] - 2026-05-03
+
+### Added
+- `/voca help` command: grouped command reference for all subcommands
+- `/voca export` command: export vocabulary entries in csv, anki, json, or markdown format with `--status` and `--lang` filters
+
+### Changed
+- Centralized awk column indices via `AWK_COL_VARS` in `lib.sh` — 14 scripts refactored from hardcoded `$N` to named `$C_*` constants
+- Data directory discovery guard in `lib.sh`: auto-detects mismatched `CLAUDE_PLUGIN_DATA` paths and redirects to the directory containing `voca.tsv`
+
+### Fixed
+- Queue picker "select all known" scope: now marks all unselected words across all questions as already-known (was only applying to the last question)
+- `domain-remove.sh` JSON parsing: replaced fragile awk `gsub()` chain with jq exact-match filtering to prevent substring corruption (e.g., removing "ai" no longer damages "ai-ops")
+
 ## [0.1.8] - 2026-05-02
 
 ### Added
@@ -124,6 +138,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Domain and source tag registries with color support
 - CC BY-SA 4.0 license
 
+[0.1.9]: https://github.com/flame91/vocatrack/compare/v0.1.8...v0.1.9
+[0.1.8]: https://github.com/flame91/vocatrack/compare/v0.1.7...v0.1.8
+[0.1.7]: https://github.com/flame91/vocatrack/compare/v0.1.6...v0.1.7
+[0.1.6]: https://github.com/flame91/vocatrack/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/flame91/vocatrack/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/flame91/vocatrack/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/flame91/vocatrack/compare/v0.1.2...v0.1.3
