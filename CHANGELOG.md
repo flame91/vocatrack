@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.7] - 2026-05-02
+
+### Added
+- Adaptive column widths in `/voca list`: auto-detects terminal width and distributes space to meaning/domain columns (config value `"auto"`, new default)
+- Level-aware vocabulary extraction: injects user's tested vocabulary levels from profile into the extraction prompt, filtering out words below demonstrated level
+
+### Changed
+- `list.widths.meaning` and `list.widths.domain` default changed from fixed `30`/`25` to `"auto"`
+
 ## [0.1.6] - 2026-05-02
 
 ### Added
