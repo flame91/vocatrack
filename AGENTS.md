@@ -95,7 +95,13 @@ Specialized agents for the voca plugin repository.
    grep -rn '/home\|/Users\|~/\.claude' plugins/voca/commands/*.md
    ```
 
-6. **git status clean**: no uncommitted changes
+6. **CHANGELOG.md**: verify the new version has an entry in CHANGELOG.md
+   ```bash
+   VERSION=$(jq -r .version plugins/voca/.claude-plugin/plugin.json)
+   grep -q "\[$VERSION\]" CHANGELOG.md && echo "OK: CHANGELOG has $VERSION" || echo "MISSING: CHANGELOG entry for $VERSION"
+   ```
+
+7. **git status clean**: no uncommitted changes
    ```bash
    git status --porcelain
    ```
