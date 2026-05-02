@@ -47,19 +47,19 @@ EXISTING=$(find_word "$WORD" || true)
 
 if [[ -n "$EXISTING" ]]; then
   # Update seen_count, last_seen_at, optionally fill empty context
-  atomic_rewrite "$WORDS_TSV" \
+  atomic_rewrite "$WORDS_TSV" $AWK_COL_VARS \
     -v w="$WORD" -v t="$TODAY" -v ctx="$CONTEXT" '
     NR == 1 { print; next }
-    tolower($1) == tolower(w) {
-      $8 = ($8 == "" ? 2 : $8 + 1)
-      $10 = t
-      if ($5 == "" && ctx != "") $5 = ctx
+    tolower($C_WORD) == tolower(w) {
+      $C_SEEN = ($C_SEEN == "" ? 2 : $C_SEEN + 1)
+      $C_LAST_SEEN = t
+      if ($C_CONTEXT == "" && ctx != "") $C_CONTEXT = ctx
       print
       next
     }
     { print }
   '
-  OLD_MEANING=$(printf '%s' "$EXISTING" | awk -F'\t' '{print $3}')
+  OLD_MEANING=$(printf '%s' "$EXISTING" | awk -F'\t' -v c="$C_MEANING" '{print $c}')
   echo "Updated \"$WORD\" — ${OLD_MEANING:-(no meaning)} (seen again)."
 else
   printf '%s\n' "$WORD"$'\t'"$LANG"$'\t'"$MEANING"$'\t'"$EXAMPLE"$'\t'"$CONTEXT"$'\t'"$SOURCE"$'\t'"$DOMAIN"$'\t1\t'"$TODAY"$'\t'"$TODAY"$'\t'"$ADDED_VIA"$'\t\tactive\t\t\t' >> "$WORDS_TSV"

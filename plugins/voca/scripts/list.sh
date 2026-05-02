@@ -102,12 +102,12 @@ case "$SORT_SPEC" in
   *)                 SORT_K=10; SORT_FLAGS=r ;;
 esac
 
-ROWS=$(awk -F'\t' -v s="$STATUS" -v l="$LANG_FILTER" '
+ROWS=$(awk -F'\t' $AWK_COL_VARS -v s="$STATUS" -v l="$LANG_FILTER" '
   NR == 1 { next }
-  l != "" && l != "all" && tolower($2) != tolower(l) { next }
+  l != "" && l != "all" && tolower($C_LANG) != tolower(l) { next }
   s == "all"      { print; next }
-  s == "active"   { if ($13 == "active" || $13 == "") print; next }
-  $13 == s        { print }
+  s == "active"   { if ($C_STATUS == "active" || $C_STATUS == "") print; next }
+  $C_STATUS == s  { print }
 ' "$WORDS_TSV" | sort -t$'\t' -k${SORT_K},${SORT_K}${SORT_FLAGS} | head -n "$N")
 
 if [[ -z "$ROWS" ]]; then

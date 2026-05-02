@@ -14,9 +14,9 @@ fi
 lock_acquire || exit 1
 trap lock_release EXIT
 
-atomic_rewrite "$WORDS_TSV" -v w="$WORD" '
+atomic_rewrite "$WORDS_TSV" $AWK_COL_VARS -v w="$WORD" '
   NR == 1 { print; next }
-  tolower($1) == tolower(w) { NF = 16; $12 = ""; $13 = "active"; $15 = ""; $16 = ""; print; next }
+  tolower($C_WORD) == tolower(w) { NF = NCOLS; $C_RATING = ""; $C_STATUS = "active"; $C_MASTERED_AT = ""; $C_ARCHIVED_AT = ""; print; next }
   { print }
 '
 

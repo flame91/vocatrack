@@ -7,11 +7,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 Q="${1:-}"
 [[ -z "$Q" ]] && { echo "usage: search.sh <query>" >&2; exit 1; }
 
-ROWS=$(awk -F'\t' -v q="$Q" '
+ROWS=$(awk -F'\t' $AWK_COL_VARS -v q="$Q" '
   NR == 1 { next }
   BEGIN { qs = tolower(q) }
   {
-    line = tolower($1 "\t" $3 "\t" $4 "\t" $5)
+    line = tolower($C_WORD "\t" $C_MEANING "\t" $C_EXAMPLE "\t" $C_CONTEXT)
     if (index(line, qs) > 0) print
   }
 ' "$WORDS_TSV")
@@ -23,10 +23,10 @@ fi
 
 {
   echo $'word\tlang\tmeaning\tstatus\trating'
-  printf '%s\n' "$ROWS" | awk -F'\t' -v OFS='\t' '{
-    m = $3; if (length(m) > 50) m = substr(m, 1, 50)
-    st = ($13 == "" ? "active" : $13)
-    rt = ($12 == "" ? "-" : $12)
-    print $1, ($2 == "" ? "-" : $2), m, st, rt
+  printf '%s\n' "$ROWS" | awk -F'\t' -v OFS='\t' $AWK_COL_VARS '{
+    m = $C_MEANING; if (length(m) > 50) m = substr(m, 1, 50)
+    st = ($C_STATUS == "" ? "active" : $C_STATUS)
+    rt = ($C_RATING == "" ? "-" : $C_RATING)
+    print $C_WORD, ($C_LANG == "" ? "-" : $C_LANG), m, st, rt
   }'
 } | column -t -s $'\t'

@@ -31,9 +31,9 @@ SAFE=$(printf '%s' "$DOMAIN_JSON" | tr -d '\t\r\n')
 lock_acquire || exit 1
 trap lock_release EXIT
 
-atomic_rewrite "$WORDS_TSV" -v w="$WORD" -v d="$SAFE" '
+atomic_rewrite "$WORDS_TSV" $AWK_COL_VARS -v w="$WORD" -v d="$SAFE" '
   NR == 1 { print; next }
-  tolower($1) == tolower(w) { NF = 16; $7 = d; print; next }
+  tolower($C_WORD) == tolower(w) { NF = NCOLS; $C_DOMAIN = d; print; next }
   { print }
 '
 

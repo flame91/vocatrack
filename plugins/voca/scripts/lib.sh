@@ -61,6 +61,13 @@ SOURCES_TXT="$STATE_DIR/sources.txt"
 WORDS_HEADER=$'word\tlang\tmeaning\texample\tcontext\tsource\tdomain\tseen_count\tfirst_seen_at\tlast_seen_at\tadded_via\tuser_rating\tstatus\tuser_note\tmastered_at\tarchived_at'
 LOG_HEADER=$'candidate\textracted_at\taccepted\trejected_reason\tcommand_used\thook_latency_ms\tlang_guess\tsession_hint'
 
+# Column indices for voca.tsv — use via $AWK_COL_VARS in awk invocations.
+C_WORD=1  C_LANG=2  C_MEANING=3  C_EXAMPLE=4  C_CONTEXT=5  C_SOURCE=6
+C_DOMAIN=7  C_SEEN=8  C_FIRST_SEEN=9  C_LAST_SEEN=10  C_VIA=11
+C_RATING=12  C_STATUS=13  C_NOTE=14  C_MASTERED_AT=15  C_ARCHIVED_AT=16
+NUM_COLS=16
+AWK_COL_VARS="-v C_WORD=$C_WORD -v C_LANG=$C_LANG -v C_MEANING=$C_MEANING -v C_EXAMPLE=$C_EXAMPLE -v C_CONTEXT=$C_CONTEXT -v C_SOURCE=$C_SOURCE -v C_DOMAIN=$C_DOMAIN -v C_SEEN=$C_SEEN -v C_FIRST_SEEN=$C_FIRST_SEEN -v C_LAST_SEEN=$C_LAST_SEEN -v C_VIA=$C_VIA -v C_RATING=$C_RATING -v C_STATUS=$C_STATUS -v C_NOTE=$C_NOTE -v C_MASTERED_AT=$C_MASTERED_AT -v C_ARCHIVED_AT=$C_ARCHIVED_AT -v NCOLS=$NUM_COLS"
+
 mkdir -p "$STATE_DIR" 2>/dev/null || true
 
 # Seed domains/sources from PLUGIN_ROOT/data on first run if not present in STATE_DIR.

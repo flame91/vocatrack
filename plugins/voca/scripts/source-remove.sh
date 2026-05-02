@@ -18,9 +18,9 @@ grep -v "^${NAME} " "$SOURCES_TXT" > "$tmp" && mv "$tmp" "$SOURCES_TXT"
 lock_acquire || exit 1
 trap lock_release EXIT
 
-atomic_rewrite "$WORDS_TSV" -v n="$NAME" '
+atomic_rewrite "$WORDS_TSV" $AWK_COL_VARS -v n="$NAME" '
   NR == 1 { print; next }
-  $6 == n { $6 = ""; print; next }
+  $C_SOURCE == n { $C_SOURCE = ""; print; next }
   { print }
 '
 

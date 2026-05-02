@@ -30,14 +30,14 @@ lock_acquire || exit 1
 trap lock_release EXIT
 
 TODAY=$(today)
-atomic_rewrite "$WORDS_TSV" \
+atomic_rewrite "$WORDS_TSV" $AWK_COL_VARS \
   -v w="$WORD" -v r="$RATING" -v n="$NOTE_CLEAN" -v t="$TODAY" '
   NR == 1 { print; next }
-  tolower($1) == tolower(w) {
-    NF = 16
-    $12 = r
-    if (r == "memorized") { $13 = "mastered"; $15 = t }
-    if (n != "") $14 = n
+  tolower($C_WORD) == tolower(w) {
+    NF = NCOLS
+    $C_RATING = r
+    if (r == "memorized") { $C_STATUS = "mastered"; $C_MASTERED_AT = t }
+    if (n != "") $C_NOTE = n
     print
     next
   }

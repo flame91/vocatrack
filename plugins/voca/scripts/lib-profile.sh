@@ -113,7 +113,7 @@ profile_first_run_state() {
 # Count voca.tsv rows with given lang AND user_rating=memorized.
 count_memorized_for_lang() {
   local lang="$1"
-  awk -F'\t' -v l="$lang" 'NR>1 && $2==l && $12=="memorized"' "$WORDS_TSV" 2>/dev/null \
+  awk -F'\t' $AWK_COL_VARS -v l="$lang" 'NR>1 && $C_LANG==l && $C_RATING=="memorized"' "$WORDS_TSV" 2>/dev/null \
     | wc -l | tr -d ' '
 }
 

@@ -7,7 +7,7 @@ QUEUE="$QUEUE_PATH"
 [[ -f "$QUEUE" ]] || exit 0
 
 SKIP=$(
-  { [[ -f "$WORDS_TSV" ]] && awk -F'\t' 'NR>1 && $1!="" {print tolower($1)}' "$WORDS_TSV";
+  { [[ -f "$WORDS_TSV" ]] && awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_WORD!="" {print tolower($C_WORD)}' "$WORDS_TSV";
     [[ -f "$LOG_TSV" ]] && awk -F'\t' 'NR>1 && $1!="" && $4=="user marked as already known via picker" {print tolower($1)}' "$LOG_TSV";
   } | sort -u
 )
