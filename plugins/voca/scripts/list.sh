@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# /vocab list [N] [--status=active|mastered|archived|all]
+# /voca list [N] [--status=active|mastered|archived|all]
 #
-# Defaults & display columns are read from ~/.claude/state/vocab-config.json
+# Defaults & display columns are read from ~/.claude/state/voca-config.json
 # (keys: list.default_n, list.default_status, list.sort, list.columns,
 # list.widths.meaning, list.widths.domain). CLI args override config.
 set -uo pipefail
@@ -44,7 +44,7 @@ case "$LANG_FILTER" in
   *) echo "unknown lang: $LANG_FILTER (en|ja|ko|mixed|other|all)" >&2; exit 1 ;;
 esac
 
-# Map sort spec → sort column + flags. vocab.tsv 1-indexed:
+# Map sort spec → sort column + flags. voca.tsv 1-indexed:
 #   1 word, 8 seen_count, 9 first_seen_at, 10 last_seen_at
 case "$SORT_SPEC" in
   "last_seen desc")  SORT_K=10; SORT_FLAGS=r ;;

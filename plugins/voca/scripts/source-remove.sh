@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab source remove <name>
+# /voca source remove <name>
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"

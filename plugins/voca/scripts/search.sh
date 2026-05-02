@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab search <query> — case-insensitive grep across word + meaning + example + context.
+# /voca search <query> — case-insensitive grep across word + meaning + example + context.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"

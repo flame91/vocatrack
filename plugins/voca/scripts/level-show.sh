@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# /vocab level — render vocabulary level profile.
+# /voca level — render vocabulary level profile.
 # Usage:
-#   level-show.sh           # full block with header (for /vocab level)
+#   level-show.sh           # full block with header (for /voca level)
 #   level-show.sh --inline  # compact block for stats.sh prepend
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,7 +29,7 @@ render_row() {
   lang_obj=$(printf '%s' "$PROFILE" | jq -c --arg l "$lang" '.languages[$l] // null')
 
   if [[ "$lang_obj" == "null" ]]; then
-    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "not measured" "/vocab level test $lang"
+    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "not measured" "/voca level test $lang"
     return
   fi
 
@@ -55,7 +55,7 @@ render_row() {
   fi
 
   if [[ -z "$estimated" || -z "$tested" ]]; then
-    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "not measured" "/vocab level test $lang"
+    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "not measured" "/voca level test $lang"
     return
   fi
 
@@ -103,7 +103,7 @@ if (( INLINE == 0 )); then
     [[ -z "$t" ]] && continue
     d=$(days_since "$t")
     if (( d >= 90 )); then
-      HINTS="${HINTS}  ${l} 마지막 측정 ${d}일 전 — /vocab level test ${l} 권장\n"
+      HINTS="${HINTS}  $(t level.show.stale_hint "$l" "$d" "$l")\n"
     fi
   done <<< "$STALE_LANGS"
   if [[ -n "$HINTS" ]]; then

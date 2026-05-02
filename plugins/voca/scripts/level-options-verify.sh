@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab level test — verify that AskUserQuestion option labels round-trip
+# /voca level test — verify that AskUserQuestion option labels round-trip
 # match the source probe JSON byte-for-byte. Run this AFTER the model has
 # constructed its AskUserQuestion payload but BEFORE actually invoking it.
 #
@@ -20,6 +20,10 @@
 #   - Exit 0 if every label is present in probes (no typos).
 #   - Exit 1 + diff to stderr otherwise.
 set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib.sh"
+. "$SCRIPT_DIR/lib-i18n.sh"
 
 probe_file="${1:?probe-json file required}"
 auq_file="${2:?auq-payload file required}"
@@ -53,7 +57,8 @@ esac
 
 # Allow the well-known sentinel option for queue picker; level test never has it,
 # so it should never fire here, but keep the filter to make the script reusable.
-auq_labels=$(printf '%s\n' "$auq_labels" | grep -vxF '이 페이지의 모든 단어를 알고 있음' || true)
+select_all_label=$(ti queue.select_all_known)
+auq_labels=$(printf '%s\n' "$auq_labels" | grep -vxF "$select_all_label" || true)
 
 # Set difference: labels not in probes.
 strays=$(comm -23 <(printf '%s\n' "$auq_labels") <(printf '%s\n' "$probe_words"))

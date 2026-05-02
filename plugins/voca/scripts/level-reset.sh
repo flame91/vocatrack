@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab level reset — clear vocabulary level profile for one or all languages.
+# /voca level reset — clear vocabulary level profile for one or all languages.
 # Usage:
 #   level-reset.sh --lang en|ja|ko|all
 set -uo pipefail

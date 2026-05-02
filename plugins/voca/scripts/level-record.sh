@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab level test — record stage results, apply midpoint formula, update profile.
+# /voca level test — record stage results, apply midpoint formula, update profile.
 # stdin JSON:
 #   { "lang": "en", "stage": "stage1" | "stage2" | "stage3",
 #     "results": [ { "rank": 50, "known": true }, ... ] }

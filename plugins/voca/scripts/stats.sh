@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab stats — at-a-glance dashboard.
+# /voca stats — at-a-glance dashboard.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
@@ -173,7 +173,7 @@ if [[ -n "$LEVEL_BLOCK" ]]; then
 fi
 
 cat <<EOF
-═══ Vocab Stats (as of ${TODAY}) ════════════════════════════════════
+═══ Voca Stats (as of ${TODAY}) ════════════════════════════════════
 Total: ${TOTAL} words · ${EXTRACTED} candidates extracted (14d) · queue ${PENDING}
 
 Lifecycle                Rating

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab archive <word> — set status='archived'.
+# /voca archive <word> — set status='archived'.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
@@ -8,7 +8,7 @@ WORD="${1:-}"
 [[ -z "$WORD" ]] && { echo "usage: archive.sh <word>" >&2; exit 1; }
 
 if ! find_word "$WORD" >/dev/null; then
-  echo "vocab archive: \"$WORD\" not found" >&2; exit 1
+  echo "voca archive: \"$WORD\" not found" >&2; exit 1
 fi
 
 lock_acquire || exit 1

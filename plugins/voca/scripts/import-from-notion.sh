@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# One-time migration: pull all rows from Notion's Vocab DB + Candidates Log
-# and append them to vocab.tsv / vocab-candidates-log.tsv.
+# One-time migration: pull all rows from Notion's Voca DB + Candidates Log
+# and append them to voca.tsv / voca-candidates-log.tsv.
 #
-# Requires `notion_token` in ~/.claude/state/vocab-config.json (Internal Integration token,
+# Requires `notion_token` in ~/.claude/state/voca-config.json (Internal Integration token,
 # integration must be connected to both DBs in Notion).
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
 
-CONFIG="${VOCAB_CONFIG:-$CONFIG_PATH}"
+CONFIG="$CONFIG_PATH"
 if [[ ! -f "$CONFIG" ]]; then
   echo "config missing: $CONFIG" >&2; exit 2
 fi
@@ -20,9 +20,9 @@ import-from-notion: notion_token missing in $CONFIG.
 
 Set up an internal integration once:
   1) https://www.notion.so/profile/integrations -> "New internal integration"
-     (name: vocab-cli, capabilities: Read content)
+     (name: voca-cli, capabilities: Read content)
   2) Copy the Internal Integration Token (secret_...)
-  3) Open the Vocab DB and the Vocab Candidates Log DB; ... > Connections > add vocab-cli to both
+  3) Open the Voca DB and the Voca Candidates Log DB; ... > Connections > add voca-cli to both
   4) jq '. + {notion_token: "secret_..."}' $CONFIG > /tmp/vc.json && mv /tmp/vc.json $CONFIG && chmod 600 $CONFIG
 
 After import, the token can be discarded — the TSV files are self-sufficient.
@@ -30,7 +30,7 @@ EOF
   exit 2
 fi
 
-VOCAB_DB_ID=$(jq -r '.vocab_db.database_id' "$CONFIG")
+VOCA_DB_ID=$(jq -r '.voca_db.database_id' "$CONFIG")
 LOG_DB_ID=$(jq -r '.candidates_log_db.database_id' "$CONFIG")
 NOTION_API="https://api.notion.com/v1"
 NOTION_VERSION="2022-06-28"
@@ -70,7 +70,7 @@ paginate_db() {
 }
 
 # --- Words ---
-WORDS_NEW=$(paginate_db "$VOCAB_DB_ID" | jq -r '.results[] | [
+WORDS_NEW=$(paginate_db "$VOCA_DB_ID" | jq -r '.results[] | [
   ((.properties.word.title[0].plain_text // "") | gsub("[\t\r\n]"; " ")),
   (.properties.lang.select.name // ""),
   ((.properties.meaning.rich_text | map(.plain_text) | join("") | gsub("[\t\r\n]"; " "))),

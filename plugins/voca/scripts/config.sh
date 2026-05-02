@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab config — CLI entry for vocab subsystem config.
+# /voca config — CLI entry for voca subsystem config.
 #   show                    — print full config (jq pretty)
 #   get <key>               — print one value (dot notation)
 #   set <key> <value>       — set a value (auto-detect JSON vs string)
@@ -52,7 +52,7 @@ case "$cmd" in
     if [[ "${1:-}" == "--scope" ]]; then
       config_lock_acquire
       config_ensure_file
-      TMP=$(mktemp "${TMPDIR:-/tmp}/vocab-cfg.XXXXXX")
+      TMP=$(mktemp "${TMPDIR:-/tmp}/voca-cfg.XXXXXX")
       jq 'del(.list, .picker, .scan)' "$CONFIG_PATH" > "$TMP" && mv "$TMP" "$CONFIG_PATH"
       config_lock_release
       echo "reset list/picker/scan (legacy + level keys preserved)"

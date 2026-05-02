@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Async extractor — runs in the background, spawned by vocab-extract.sh.
-# Calls `claude -p` with Haiku to extract candidate words from the latest
-# assistant response and appends them to the queue file.
+# Async extractor — runs in the background, spawned by voca-extract.sh.
+# Calls `claude -p` with the configured scan model (default Haiku) to extract
+# candidate words from the latest assistant response and appends them to the
+# queue file. Scan model is read from voca-config.json (key: scan.model).
 #
-# Recursion guard: VOCAB_HOOK_RUNNING=1 is exported so the nested claude
-# session's Stop hook (vocab-extract.sh) exits immediately.
+# Recursion guard: VOCA_HOOK_RUNNING=1 is exported so the nested claude
+# session's Stop hook (voca-extract.sh) exits immediately.
 
 set -uo pipefail
 
-export VOCAB_HOOK_RUNNING=1
+export VOCA_HOOK_RUNNING=1
 
 TRANSCRIPT="${1:-}"
 MODE="${2:-last}"           # "last" (default — last assistant turn) | "full" (entire transcript)
@@ -17,10 +18,11 @@ MODE="${2:-last}"           # "last" (default — last assistant turn) | "full" 
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT_GUESS="${CLAUDE_PLUGIN_ROOT:-$(cd "$HOOK_DIR/.." && pwd)}"
 . "$PLUGIN_ROOT_GUESS/scripts/lib.sh"
+. "$PLUGIN_ROOT_GUESS/scripts/lib-config.sh"
 
 QUEUE="$QUEUE_PATH"
 LOG="$HOOK_LOG"
-LOCK_DIR="$STATE_DIR/.vocab-extract.lock.d"
+LOCK_DIR="$STATE_DIR/.voca-extract.lock.d"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
 
 # Single-flight lock via mkdir (atomic, cross-platform — macOS has no flock)
@@ -111,7 +113,15 @@ PROMPT=${PROMPT//\{\{PRIMARY\}\}/$PRIMARY_NAME}
 PROMPT="${PROMPT}
 ${TRUNCATED}"
 
-OUT=$(claude -p --model haiku "$PROMPT" 2>>"$LOG") || { printf '[%s] claude -p failed\n' "$(date)" >> "$LOG"; exit 0; }
+# Resolve scan model from config (default haiku). Allowed: haiku|sonnet|opus.
+# Unknown values fall back to haiku to keep cost predictable.
+SCAN_MODEL=$(config_get scan.model haiku)
+case "$SCAN_MODEL" in
+  haiku|sonnet|opus) ;;
+  *) SCAN_MODEL=haiku ;;
+esac
+
+OUT=$(claude -p --model "$SCAN_MODEL" "$PROMPT" 2>>"$LOG") || { printf '[%s] claude -p failed (model=%s)\n' "$(date)" "$SCAN_MODEL" >> "$LOG"; exit 0; }
 
 # Strip markdown code fences if present (avoid backticks in $() — bash treats
 # them as nested command substitution even inside single quotes)
@@ -125,8 +135,8 @@ if [[ -z "$CANDIDATES" || "$CANDIDATES" == "[]" ]]; then
   exit 0
 fi
 
-# --- dedup against vocab.tsv + log "already known" rows ------------------
-# Skip any word already tracked in vocab.tsv (regardless of status), OR
+# --- dedup against voca.tsv + log "already known" rows ------------------
+# Skip any word already tracked in voca.tsv (regardless of status), OR
 # previously rejected via the picker with reason="user marked as already known
 # via picker". Without the log-based filter, words the user explicitly said
 # they already know would keep re-surfacing every scan.

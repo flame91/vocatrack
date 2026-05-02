@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab level test — build AskUserQuestion option blobs from probe JSON,
+# /voca level test — build AskUserQuestion option blobs from probe JSON,
 # verbatim. Eliminates transcription typos when the model assembles labels
 # manually (e.g. Hangul codepoint confusion: 쉬 U+C26C vs 쉰 U+C270).
 #
@@ -33,6 +33,10 @@
 # can confirm round-trip integrity.
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib.sh"
+. "$SCRIPT_DIR/lib-i18n.sh"
+
 input="${1:-}"
 if [[ -z "$input" || "$input" == "-" ]]; then
   payload=$(cat)
@@ -43,7 +47,7 @@ fi
 lang=$(printf '%s' "$payload" | jq -r '.lang')
 stage=$(printf '%s' "$payload" | jq -r '.stage')
 lang_upper=$(printf '%s' "$lang" | tr '[:lower:]' '[:upper:]')
-header="${lang_upper} 테스트"
+header=$(ti level.test.header "$lang_upper")
 
 # 16 word-slots per round (4 questions × 4 options).
 # Stage 1 = 32 probes → 2 rounds. Stage 2 = ≤64 → ≤4 rounds. Stage 3 = 32 → 2 rounds.
@@ -63,12 +67,18 @@ stage_label() {
 }
 slabel=$(stage_label "$stage")
 
+# Resolve i18n question template (uses named placeholders for jq substitution).
+q_template=$(_voca_lookup level.test.question "$VOCA_LOCALE_RESOLVED" 2>/dev/null) \
+  || q_template=$(_voca_lookup level.test.question en 2>/dev/null) \
+  || q_template="Check the words you know ({stage}, {round}/{total}, q{qnum})."
+
 # Build options, verbatim, via jq. Words flow word→label without ever
 # touching shell-string interpolation, so codepoints cannot drift.
 printf '%s' "$payload" | jq --argjson spr "$slots_per_round" \
   --argjson opq "$options_per_question" \
   --arg header "$header" \
   --arg slabel "$slabel" \
+  --arg qtmpl "$q_template" \
   --argjson total_rounds "$total_rounds" '
   . as $root
   | [ range(0; ($root.probes | length); $spr) ] as $round_starts
@@ -85,7 +95,7 @@ printf '%s' "$payload" | jq --argjson spr "$slots_per_round" \
             | ($q.key + 1) as $qnum
             | $round_words[$qstart:($qstart + $opq)] as $q_words
             | {
-                question: ("아는 단어를 체크하세요 (\($slabel), \($rnum)/\($total_rounds), q\($qnum))."),
+                question: ($qtmpl | gsub("\\{stage\\}"; $slabel) | gsub("\\{round\\}"; ($rnum|tostring)) | gsub("\\{total\\}"; ($total_rounds|tostring)) | gsub("\\{qnum\\}"; ($qnum|tostring))),
                 header: $header,
                 multiSelect: true,
                 options: [ $q_words[] | {label: .word, description: ""} ]

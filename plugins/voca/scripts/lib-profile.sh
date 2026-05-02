@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Helpers for ~/.claude/state/vocab-profile.json (vocabulary level / language profile).
+# Helpers for ~/.claude/state/voca-profile.json (vocabulary level / language profile).
 # Loaded via: . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib-profile.sh"
 # This file also sources lib.sh for $DB_DIR / lock_acquire / lock_release / today.
 set -uo pipefail
@@ -7,8 +7,7 @@ set -uo pipefail
 LIB_PROFILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$LIB_PROFILE_DIR/lib.sh"
 
-PROFILE_PATH="$DB_DIR/vocab-profile.json"
-PROFILE_LOCK_DIR="$DB_DIR/.vocab-profile.lock.d"
+PROFILE_LOCK_DIR="$DB_DIR/.voca-profile.lock.d"
 
 # ---------------------------------------------------------------------------
 # locking (separate from words tsv lock so they don't contend)
@@ -22,7 +21,7 @@ profile_lock_acquire() {
     fi
     sleep 0.1
     i=$((i+1))
-    (( i > 50 )) && { echo "vocab-profile: lock timeout" >&2; return 1; }
+    (( i > 50 )) && { echo "voca-profile: lock timeout" >&2; return 1; }
   done
 }
 profile_lock_release() { rmdir "$PROFILE_LOCK_DIR" 2>/dev/null || true; }
@@ -48,12 +47,12 @@ profile_write() {
   local input
   input=$(cat)
   if ! printf '%s' "$input" | jq -e . >/dev/null 2>&1; then
-    echo "vocab-profile: invalid JSON on stdin" >&2
+    echo "voca-profile: invalid JSON on stdin" >&2
     return 1
   fi
   profile_lock_acquire || return 1
   local tmp
-  tmp=$(mktemp "${TMPDIR:-/tmp}/vocab-profile.XXXXXX") || { profile_lock_release; return 1; }
+  tmp=$(mktemp "${TMPDIR:-/tmp}/voca-profile.XXXXXX") || { profile_lock_release; return 1; }
   printf '%s\n' "$input" > "$tmp" && mv "$tmp" "$PROFILE_PATH"
   profile_lock_release
 }
@@ -65,7 +64,7 @@ profile_write_lang() {
   local langjson
   langjson=$(cat)
   if ! printf '%s' "$langjson" | jq -e . >/dev/null 2>&1; then
-    echo "vocab-profile: invalid lang JSON" >&2
+    echo "voca-profile: invalid lang JSON" >&2
     return 1
   fi
   local current
@@ -75,7 +74,7 @@ profile_write_lang() {
     | profile_write
 }
 
-# Mark first-run as declined (so vocab.md guard stops asking).
+# Mark first-run as declined (so voca guard stops asking).
 profile_first_run_decline() {
   local current
   current=$(profile_read)
@@ -111,7 +110,7 @@ profile_first_run_state() {
   fi
 }
 
-# Count vocab.tsv rows with given lang AND user_rating=memorized.
+# Count voca.tsv rows with given lang AND user_rating=memorized.
 count_memorized_for_lang() {
   local lang="$1"
   awk -F'\t' -v l="$lang" 'NR>1 && $2==l && $12=="memorized"' "$WORDS_TSV" 2>/dev/null \
@@ -163,7 +162,7 @@ _band_en_native() {
   elif (( s < 35000 )); then echo "Native — Advanced"
   elif (( s < 45000 )); then echo "Native — Top tier"
   elif (( s < 55000 )); then echo "Native — Heavy reader"
-  else                       echo "Native — 상위 1%"
+  else                       echo "Native — Top 1%"
   fi
 }
 
@@ -218,11 +217,11 @@ _percentile_ko() {
 _percentile_en() {
   local s="$1"
   local p
-  if   (( s < 25000 )); then p="평균 native (성인)"
-  elif (( s < 35000 )); then p="상위 30% native"
-  elif (( s < 45000 )); then p="상위 10% (heavy reader)"
-  elif (( s < 55000 )); then p="상위 3%"
-  else                       p="상위 1%"
+  if   (( s < 25000 )); then p="Average native (adult)"
+  elif (( s < 35000 )); then p="Top 30% native"
+  elif (( s < 45000 )); then p="Top 10% (heavy reader)"
+  elif (( s < 55000 )); then p="Top 3%"
+  else                       p="Top 1%"
   fi
   echo "$p | testyourvocab.com 2013 (2M+ samples)"
 }
@@ -230,10 +229,10 @@ _percentile_en() {
 _percentile_ja() {
   local s="$1"
   local p
-  if   (( s < 25000 )); then p="中学生 수준 (입문)"
+  if   (( s < 25000 )); then p="中学生レベル (入門)"
   elif (( s < 35000 )); then p="中学卒 ~ 高校生"
   elif (( s < 45000 )); then p="高校卒 ~ 大学生"
-  else                       p="教養人 (상위 5%)"
+  else                       p="教養人 (上位5%)"
   fi
   echo "$p | NTT 語彙数推定テスト 補正版"
 }

@@ -7,3 +7,7 @@ level.final.stage3_recommend	Stage 3 推奨 — プール上限 saturate。/voca
 level.reset.no_profile	プロファイル無し — reset 不要。
 level.reset.all	プロファイル全言語の測定データを初期化。
 level.reset.lang	%s 測定データを初期化。
+level.test.header	%s テスト
+level.test.question	知っている単語をチェックしてください ({stage}, {round}/{total}, q{qnum}).
+level.show.stale_hint	%s 最終測定 %s日前 — /voca level test %s 推奨
+queue.select_all_known	このページの全単語を知っています

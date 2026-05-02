@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab rate <word> <memorized|learning|unsure> [note]
+# /voca rate <word> <memorized|learning|unsure> [note]
 # memorized → also auto-promote status to 'mastered'.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,7 +20,7 @@ esac
 
 EXISTING=$(find_word "$WORD" || true)
 if [[ -z "$EXISTING" ]]; then
-  echo "vocab rate: \"$WORD\" not found" >&2
+  echo "voca rate: \"$WORD\" not found" >&2
   exit 1
 fi
 

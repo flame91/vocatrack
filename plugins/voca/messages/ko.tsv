@@ -7,3 +7,7 @@ level.final.stage3_recommend	Stage 3 권장 — 풀 상한 saturate. /voca level
 level.reset.no_profile	Profile 없음 — reset 불필요.
 level.reset.all	Profile 전체 언어 측정 데이터 초기화.
 level.reset.lang	%s 측정 데이터 초기화.
+level.test.header	%s 테스트
+level.test.question	아는 단어를 체크하세요 ({stage}, {round}/{total}, q{qnum}).
+level.show.stale_hint	%s 마지막 측정 %s일 전 — /voca level test %s 권장
+queue.select_all_known	이 페이지의 모든 단어를 알고 있음

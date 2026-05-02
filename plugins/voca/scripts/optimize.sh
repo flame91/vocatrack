@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab config Optimize — 가용 터미널 폭에 맞는 list.columns/widths 추천
+# /voca config Optimize — 가용 터미널 폭에 맞는 list.columns/widths 추천
 #
 # usage: optimize.sh <available_cols>
 # stdout (line 1): JSON

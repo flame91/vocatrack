@@ -6,7 +6,7 @@ set -uo pipefail
 
 # --- Plugin paths (resolved once) ----------------------------------------
 # PLUGIN_ROOT  — read-only plugin install dir (scripts, wordlists, messages, data)
-# STATE_DIR    — per-user writable dir (vocab.tsv, profile, candidates, configs)
+# STATE_DIR    — per-user writable dir (voca.tsv, profile, candidates, configs)
 #
 # Resolution order for STATE_DIR (first non-empty wins):
 #   1. $VOCA_STATE_DIR        — explicit override
@@ -34,12 +34,12 @@ SEEDS_DIR="$PLUGIN_ROOT/data"
 # --- Backward-compatible legacy aliases (still used across scripts) -------
 DB_DIR="$STATE_DIR"
 
-WORDS_TSV="$STATE_DIR/vocab.tsv"
-LOG_TSV="$STATE_DIR/vocab-candidates-log.tsv"
-QUEUE_PATH="$STATE_DIR/vocab-candidates.json"
-PROFILE_PATH="$STATE_DIR/vocab-profile.json"
-CONFIG_PATH="$STATE_DIR/vocab-config.json"
-HOOK_LOG="$STATE_DIR/vocab-hook.log"
+WORDS_TSV="$STATE_DIR/voca.tsv"
+LOG_TSV="$STATE_DIR/voca-candidates-log.tsv"
+QUEUE_PATH="$STATE_DIR/voca-candidates.json"
+PROFILE_PATH="$STATE_DIR/voca-profile.json"
+CONFIG_PATH="${VOCA_CONFIG_PATH:-$STATE_DIR/voca-config.json}"
+HOOK_LOG="$STATE_DIR/voca-hook.log"
 
 # Tag option registries — moved from PLUGIN_ROOT (legacy) to STATE_DIR
 # so users can customize without touching the read-only install.
@@ -73,7 +73,7 @@ init_db_if_missing() {
     current=$(head -n 1 "$WORDS_TSV" 2>/dev/null || true)
     if [[ "$current" != "$WORDS_HEADER" ]]; then
       local tmp
-      tmp=$(mktemp "${TMPDIR:-/tmp}/vocab-hdr.XXXXXX")
+      tmp=$(mktemp "${TMPDIR:-/tmp}/voca-hdr.XXXXXX")
       { printf '%s\n' "$WORDS_HEADER"; tail -n +2 "$WORDS_TSV"; } > "$tmp" && mv "$tmp" "$WORDS_TSV"
     fi
   fi
@@ -92,7 +92,7 @@ tsv_strip() {
 atomic_rewrite() {
   local file="$1"; shift
   local tmp
-  tmp=$(mktemp "${TMPDIR:-/tmp}/vocab.XXXXXX") || return 1
+  tmp=$(mktemp "${TMPDIR:-/tmp}/voca.XXXXXX") || return 1
   if awk -F'\t' -v OFS='\t' "$@" "$file" > "$tmp"; then
     mv "$tmp" "$file"
   else
@@ -102,7 +102,7 @@ atomic_rewrite() {
 }
 
 # mkdir-based lock for shared mutators.
-LOCK_DIR="$STATE_DIR/.vocab-write.lock.d"
+LOCK_DIR="$STATE_DIR/.voca-write.lock.d"
 
 lock_acquire() {
   local i=0
@@ -118,7 +118,7 @@ lock_acquire() {
     sleep 0.1
     i=$((i+1))
     if (( i > 50 )); then
-      echo "vocab: lock timeout ($LOCK_DIR)" >&2
+      echo "voca: lock timeout ($LOCK_DIR)" >&2
       return 1
     fi
   done

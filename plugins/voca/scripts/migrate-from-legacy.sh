@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time migration: copy legacy ~/.claude/state/vocab* state files into the
+# One-time migration: copy legacy ~/.claude/state/voca* state files into the
 # plugin's STATE_DIR. Safe re-run — copies only when source is newer or target
 # is missing. Use --dry-run to preview without writing.
 #
@@ -22,19 +22,20 @@ if [[ "$LEGACY" == "$STATE_DIR" ]]; then
   exit 0
 fi
 
-declare -a FILES=(
-  vocab.tsv
-  vocab-profile.json
-  vocab-config.json
-  vocab-candidates.json
-  vocab-candidates-log.tsv
-  vocab-hook.log
+declare -A FILE_MAP=(
+  [vocab.tsv]=voca.tsv
+  [vocab-profile.json]=voca-profile.json
+  [vocab-config.json]=voca-config.json
+  [vocab-candidates.json]=voca-candidates.json
+  [vocab-candidates-log.tsv]=voca-candidates-log.tsv
+  [vocab-hook.log]=voca-hook.log
 )
 
 found=0
-for f in "${FILES[@]}"; do
-  src="$LEGACY/$f"
-  dst="$STATE_DIR/$f"
+for old_name in "${!FILE_MAP[@]}"; do
+  new_name="${FILE_MAP[$old_name]}"
+  src="$LEGACY/$old_name"
+  dst="$STATE_DIR/$new_name"
   [[ -f "$src" ]] || continue
   found=$((found + 1))
 
@@ -46,7 +47,7 @@ for f in "${FILES[@]}"; do
     action="SKIP (target newer or equal)"
   fi
 
-  printf '  %-30s %s\n' "$f" "$action"
+  printf '  %-30s → %-30s %s\n' "$old_name" "$new_name" "$action"
 
   if (( DRY == 0 )) && [[ "$action" != SKIP* ]]; then
     cp -p "$src" "$dst"
@@ -54,7 +55,7 @@ for f in "${FILES[@]}"; do
 done
 
 if (( found == 0 )); then
-  echo "No legacy vocab state found at $LEGACY — nothing to migrate."
+  echo "No legacy state found at $LEGACY — nothing to migrate."
   exit 0
 fi
 

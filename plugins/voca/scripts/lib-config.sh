@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Helpers for ~/.claude/state/vocab-config.json (vocab subsystem config —
+# Helpers for ~/.claude/state/voca-config.json (voca subsystem config —
 # list display, picker behavior, scan options). Coexists with legacy keys
-# (extraction_model, vocab_db, etc.) and with vocab-profile.json (level data).
+# (extraction_model, voca_db, etc.) and with voca-profile.json (level data).
 #
 # Source: . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib-config.sh"
 
@@ -10,8 +10,7 @@ set -uo pipefail
 LIB_CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$LIB_CONFIG_DIR/lib.sh"
 
-CONFIG_PATH="${VOCAB_CONFIG_PATH:-$DB_DIR/vocab-config.json}"
-CONFIG_LOCK_DIR="$DB_DIR/.vocab-config.lock.d"
+CONFIG_LOCK_DIR="$DB_DIR/.voca-config.lock.d"
 
 config_lock_acquire() {
   local i=0
@@ -23,7 +22,7 @@ config_lock_acquire() {
     fi
     sleep 0.1
     i=$((i+1))
-    (( i > 50 )) && { echo "vocab-config: lock timeout" >&2; return 1; }
+    (( i > 50 )) && { echo "voca-config: lock timeout" >&2; return 1; }
   done
 }
 config_lock_release() { rmdir "$CONFIG_LOCK_DIR" 2>/dev/null || true; }
@@ -71,7 +70,7 @@ config_set() {
   config_lock_acquire || return 1
   config_ensure_file
   local TMP
-  TMP=$(mktemp "${TMPDIR:-/tmp}/vocab-cfg.XXXXXX")
+  TMP=$(mktemp "${TMPDIR:-/tmp}/voca-cfg.XXXXXX")
   if printf '%s' "$val" | jq . >/dev/null 2>&1; then
     jq --arg k "$key" --argjson v "$val" '
       ($k | split(".")) as $p | setpath($p; $v)
@@ -91,7 +90,7 @@ config_unset() {
   [[ -f "$CONFIG_PATH" ]] || return 0
   config_lock_acquire || return 1
   local TMP
-  TMP=$(mktemp "${TMPDIR:-/tmp}/vocab-cfg.XXXXXX")
+  TMP=$(mktemp "${TMPDIR:-/tmp}/voca-cfg.XXXXXX")
   jq --arg k "$key" 'delpaths([($k | split("."))])' "$CONFIG_PATH" > "$TMP" \
     || { rm -f "$TMP"; config_lock_release; return 1; }
   mv "$TMP" "$CONFIG_PATH"

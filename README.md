@@ -1,59 +1,70 @@
-# voca — Claude Code Plugin
+# voca -- Claude Code Plugin
 
-Local-first vocabulary tracker with TestYourVocab-style level estimation for **English / Japanese / Korean**. Words live in a TSV file in your home directory, never leave your machine, and are surfaced via the `/voca` slash command in Claude Code.
+Local-first vocabulary tracker with TestYourVocab-style level estimation for English, Japanese, and Korean.
 
-> 한국어 README: [README.ko.md](./README.ko.md)
+> 한국어: [README.ko.md](./README.ko.md) | 日本語: [README.ja.md](./README.ja.md)
 
 ## Install
 
 ```text
-/plugin marketplace add <git-url-of-this-repo>
+/plugin marketplace add https://github.com/flame91/voca-plugin
 /plugin install voca@flame91-voca-marketplace
 ```
 
-## What you get
+## Features
 
-- `/voca add <word>` — record a word with meaning, example, context, tags
-- `/voca list` / `/voca search <q>` / `/voca stats` — inspect your collection
-- `/voca level test [en|ja|ko]` — three-stage adaptive vocabulary size estimate (Stage 1 + 2 + 3)
-- `/voca queue` — picker UI for auto-extracted candidates from your sessions
-- Stop hook auto-extracts candidate words from each session (runs Haiku in the background, dedups against your existing TSV)
+| Command | Description |
+|---|---|
+| `/voca add <word>` | Record a word with meaning, example, context, and tags |
+| `/voca list` | List recent vocabulary entries in table view |
+| `/voca search <q>` | Case-insensitive search across word/meaning/example/context |
+| `/voca stats` | At-a-glance dashboard (level, lifecycle, activity, hook precision) |
+| `/voca review` | Interactive review of unrated active words |
+| `/voca rate <word>` | Rate a word: memorized, learning, or unsure |
+| `/voca archive <word>` | Archive a tracked word |
+| `/voca master <word>` | Promote a word to mastered |
+| `/voca restore <word>` | Restore an archived or mastered word to active |
+| `/voca level test [en\|ja\|ko]` | 3-stage adaptive vocabulary size estimate |
+| `/voca queue` | Picker UI for auto-extracted candidate words |
+| `/voca config` | Interactive configuration |
+| `/voca domain` | Manage domain tag registry (list / add / remove) |
+| `/voca source` | Manage source tag registry (list / add / remove) |
+| `/voca reclassify` | Re-tag existing words with current conventions |
 
-> **Privacy note:** the Stop hook posts the latest assistant turn (or, when triggered manually with `full` mode, the entire transcript) to Anthropic's Haiku API via your local `claude` CLI to identify candidate words. This uses your own Anthropic credentials; nothing is sent to any third party. Disable the hook by removing it from `~/.claude/settings.json` after install if you prefer.
+The **Stop hook** auto-extracts candidate words from each session by calling Haiku in the background and deduplicating against your existing wordlist.
 
-## Environment variables
+## Privacy
 
-| var | default | purpose |
+The Stop hook calls Anthropic's Haiku API via the local `claude` CLI using your own credentials. Nothing is sent to any third party.
+
+## Environment Variables
+
+| Variable | Default | Purpose |
 |---|---|---|
-| `VOCA_LOCALE` | system locale (`ko`/`en`/`ja`, fallback `en`) | UI message language for shell scripts |
-| `VOCA_STATE_DIR` | `${CLAUDE_PLUGIN_DATA}` if set, else `~/.claude/state` | where vocab.tsv / profile / config live |
-| `VOCA_BACKUPS` | unset | (legacy) reserved for future use |
+| `VOCA_LOCALE` | System locale (`ko`/`en`/`ja`, fallback `en`) | UI message language for shell scripts |
+| `VOCA_STATE_DIR` | `${CLAUDE_PLUGIN_DATA}` if set, else `~/.claude/state` | Where voca.tsv, profile, and config live |
+| `VOCA_CONFIG_PATH` | `${VOCA_STATE_DIR}/voca-config.json` | Path to the configuration file |
 
-## Migrating from legacy install
+## Migrating from Legacy Install
 
-If you previously had `~/.claude/scripts/vocab/`, `~/.claude/skills/vocab/`, `~/.claude/commands/voca.md`, etc. set up by hand, your **state files** at `~/.claude/state/vocab*` can be migrated into the plugin's data dir:
+The migration script maps old `vocab*` files to new `voca*` names:
 
 ```sh
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh --dry-run
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 ```
 
-Legacy script/skill/command files in `~/.claude/` are **not** auto-removed — verify the plugin works first, then delete them manually.
-
 ## Dependencies
 
-- `bash` 4+, `jq`, `awk`, `sed`, `column`, `python3` (for ms-precision timestamps in the hook)
+- `bash` 4+, `jq`, `awk`, `sed`, `column`, `python3` (for hook timestamps)
 - macOS / Linux / WSL
 
-## Versioning
+## Limitations (v0.1.2)
 
-Current: 0.1.0 — initial public plugin release.
-
-## Limitations (v1)
-
-- Slash command and skill UI labels (AskUserQuestion) are Korean. Shell-script result lines are localized to `VOCA_LOCALE`. Full UI i18n (Skill prompts) is planned for v2.
-- Wordlist updates require rebuilding via `tools/_curate.py` (separate Python venv with kiwipiepy for Korean lemmatization).
+- Shell script outputs are localized (ko/en/ja) via `VOCA_LOCALE`.
+- SKILL.md UI strings (AskUserQuestion) support locale-aware rendering via the primary language setting.
+- Wordlist updates require `tools/_curate.py` (separate Python venv).
 
 ## License
 
-CC BY-SA 4.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE) for upstream attribution.
+CC BY-SA 4.0 -- see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

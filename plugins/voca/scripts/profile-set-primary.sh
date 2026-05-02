@@ -2,7 +2,7 @@
 # /voca config — set the primary language used for generated meaning/hint.
 # usage: profile-set-primary.sh <ko|en|ja>
 #
-# Updates vocab-profile.json: sets .languages.{lang}.primary = true and clears
+# Updates voca-profile.json: sets .languages.{lang}.primary = true and clears
 # all others. Validates that the requested language has spoken=true (otherwise
 # the user has not opted into using it). Prints a 1-line confirmation.
 

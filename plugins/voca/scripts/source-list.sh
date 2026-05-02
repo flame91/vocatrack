@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab source list — show source options from sources.txt.
+# /voca source list — show source options from sources.txt.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"

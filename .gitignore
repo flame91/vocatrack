@@ -1,5 +1,6 @@
 .DS_Store
 *.log
+.claude/
 plugins/voca/scripts/wordlists/.venv/
 plugins/voca/tools/__pycache__/
 plugins/voca/tools/.venv/

@@ -11,7 +11,7 @@ Branch on first token of `$ARGUMENTS`:
 |---|---|---|
 | `list` | `domain-list.sh` | TABLE → fenced code block |
 | `add <name> [color]` | `domain-add.sh` | 1-line → plain |
-| `remove <name>` | `domain-remove.sh` | 1-line → plain (also strips tag from any matching vocab.tsv row) |
+| `remove <name>` | `domain-remove.sh` | 1-line → plain (also strips tag from any matching voca.tsv row) |
 
 ```
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/domain-<sub>.sh <args>

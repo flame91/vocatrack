@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab — internal helper. Replace the domain JSON for an existing word.
+# /voca — internal helper. Replace the domain JSON for an existing word.
 # usage: set-domain.sh <word> <domain_json>
 # ex:    set-domain.sh recall '["ai","data","science"]'
 set -uo pipefail

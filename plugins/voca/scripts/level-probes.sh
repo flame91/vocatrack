@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab level test — sample probe words for a stage.
+# /voca level test — sample probe words for a stage.
 # Usage:
 #   level-probes.sh --lang en --stage stage1
 #   level-probes.sh --lang en --stage stage2 --band-min 2000 --band-max 32000
@@ -71,10 +71,10 @@ fi
 
 # Build exclusion list (written to a temp file so awk can ingest it without
 # choking on newlines inside -v values):
-#   1. words user already mastered/memorized in vocab.tsv (lang-scoped)
+#   1. words user already mastered/memorized in voca.tsv (lang-scoped)
 #   2. words passed via --exclude-words (comma-separated; used to dedup
 #      Stage 2 against Stage 1 picks within the same test session).
-EXCL_FILE=$(mktemp "${TMPDIR:-/tmp}/vocab-excl.XXXXXX") || exit 1
+EXCL_FILE=$(mktemp "${TMPDIR:-/tmp}/voca-excl.XXXXXX") || exit 1
 trap 'rm -f "$EXCL_FILE"' EXIT
 awk -F'\t' -v l="$LANG_ARG" '
   NR>1 && $1!="" && $2==l && ($13=="mastered" || $12=="memorized") {

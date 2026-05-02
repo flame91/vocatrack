@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab domain list — show domain options from domains.txt.
+# /voca domain list — show domain options from domains.txt.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"

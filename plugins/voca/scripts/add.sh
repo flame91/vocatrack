@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab add — stdin JSON with inferred properties.
+# /voca add — stdin JSON with inferred properties.
 # Expected JSON:
 #   {
 #     "word": "ephemeral",
@@ -19,13 +19,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 JSON=$(cat)
 if [[ -z "$JSON" ]]; then
-  echo "vocab add: empty stdin (expected JSON)" >&2
+  echo "voca add: empty stdin (expected JSON)" >&2
   exit 1
 fi
 
 WORD=$(printf '%s' "$JSON" | jq -r '.word // empty' | tsv_strip)
 if [[ -z "$WORD" ]]; then
-  echo "vocab add: missing 'word' in JSON" >&2
+  echo "voca add: missing 'word' in JSON" >&2
   exit 1
 fi
 

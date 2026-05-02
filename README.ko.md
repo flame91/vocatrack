@@ -1,52 +1,70 @@
-# voca — Claude Code Plugin
+# voca -- Claude Code Plugin
 
-영어 / 일본어 / 한국어 어휘 추적기 + TestYourVocab 스타일 레벨 추정. 모든 데이터는 로컬 TSV에 저장되며 외부로 나가지 않음. Claude Code의 `/voca` 슬래시 커맨드로 접근.
+영어 / 일본어 / 한국어를 위한 로컬 우선 어휘 추적기. TestYourVocab 스타일 레벨 추정 포함.
+
+> English: [README.md](./README.md) | 日本語: [README.ja.md](./README.ja.md)
 
 ## 설치
 
 ```text
-/plugin marketplace add <이 repo의 git URL>
+/plugin marketplace add https://github.com/flame91/voca-plugin
 /plugin install voca@flame91-voca-marketplace
 ```
 
-## 주요 기능
+## 기능
 
-- `/voca add <단어>` — 의미·예문·컨텍스트·태그와 함께 기록
-- `/voca list` / `/voca search <q>` / `/voca stats` — 컬렉션 조회
-- `/voca level test [en|ja|ko]` — 3단계 적응형 어휘 추정 (Stage 1 + 2 + 3)
-- `/voca queue` — 세션에서 자동 추출된 후보 단어 picker UI
-- Stop hook으로 매 세션 종료 시 백그라운드에서 후보 자동 추출 (Haiku 호출, vocab.tsv와 자동 dedup)
+| 커맨드 | 설명 |
+|---|---|
+| `/voca add <단어>` | 의미, 예문, 컨텍스트, 태그와 함께 기록 |
+| `/voca list` | 최근 어휘 목록 테이블 보기 |
+| `/voca search <q>` | 단어/의미/예문/컨텍스트 대소문자 무시 검색 |
+| `/voca stats` | 대시보드 (레벨, 라이프사이클, 활동, hook 정밀도) |
+| `/voca review` | 미평가 활성 단어 대화형 리뷰 |
+| `/voca rate <단어>` | 단어 평가: memorized, learning, unsure |
+| `/voca archive <단어>` | 단어 아카이브 |
+| `/voca master <단어>` | 단어를 mastered로 승격 |
+| `/voca restore <단어>` | 아카이브/mastered 단어를 active로 복원 |
+| `/voca level test [en\|ja\|ko]` | 3단계 적응형 어휘량 추정 |
+| `/voca queue` | 자동 추출된 후보 단어 picker UI |
+| `/voca config` | 대화형 설정 |
+| `/voca domain` | 도메인 태그 레지스트리 관리 (조회 / 추가 / 삭제) |
+| `/voca source` | 소스 태그 레지스트리 관리 (조회 / 추가 / 삭제) |
+| `/voca reclassify` | 기존 단어를 현재 컨벤션으로 재태깅 |
 
-> **Privacy:** Stop hook은 마지막 assistant turn (또는 수동 `full` 모드 시 전체 transcript) 을 로컬 `claude` CLI를 거쳐 Anthropic Haiku API로 보내 후보 단어를 추출함. 본인의 Anthropic 자격으로만 사용되며 제3자로는 전송되지 않음. 비활성화하려면 install 후 `~/.claude/settings.json` 에서 hook을 제거.
+**Stop hook**이 매 세션 종료 시 백그라운드에서 Haiku를 호출하여 후보 단어를 자동 추출하고 기존 단어장과 중복 제거합니다.
+
+## 프라이버시
+
+Stop hook은 로컬 `claude` CLI를 통해 Anthropic Haiku API를 호출합니다. 본인의 Anthropic 자격 증명만 사용되며 제3자로 전송되지 않습니다.
 
 ## 환경변수
 
-| var | 기본값 | 용도 |
+| 변수 | 기본값 | 용도 |
 |---|---|---|
-| `VOCA_LOCALE` | 시스템 locale (`ko`/`en`/`ja`, fallback `en`) | shell 결과 메시지 언어 |
-| `VOCA_STATE_DIR` | `${CLAUDE_PLUGIN_DATA}` 또는 `~/.claude/state` | vocab.tsv / profile / config 위치 |
+| `VOCA_LOCALE` | 시스템 locale (`ko`/`en`/`ja`, fallback `en`) | shell 스크립트 결과 메시지 언어 |
+| `VOCA_STATE_DIR` | `${CLAUDE_PLUGIN_DATA}` 또는 `~/.claude/state` | voca.tsv, profile, config 저장 위치 |
+| `VOCA_CONFIG_PATH` | `${VOCA_STATE_DIR}/voca-config.json` | 설정 파일 경로 |
 
-## 기존 설치(symlink 방식)에서 이관
+## 기존 설치에서 이관
 
-기존에 `~/.claude/scripts/vocab/`, `~/.claude/skills/vocab/` 등을 수동으로 깔아 쓰던 경우, **state 파일** (`~/.claude/state/vocab*`) 을 plugin data dir로 옮길 수 있음:
+마이그레이션 스크립트가 기존 `vocab*` 파일을 새 `voca*` 이름으로 매핑합니다:
 
 ```sh
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh --dry-run
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 ```
 
-`~/.claude/` 안의 기존 script/skill/command 파일은 **자동 삭제하지 않음** — plugin 동작 확인 후 직접 삭제.
-
 ## 의존성
 
-- `bash` 4+, `jq`, `awk`, `sed`, `column`, `python3`
+- `bash` 4+, `jq`, `awk`, `sed`, `column`, `python3` (hook 타임스탬프용)
 - macOS / Linux / WSL
 
-## v1 제약
+## 제약 사항 (v0.1.2)
 
-- SKILL.md / voca.md (AskUserQuestion 라벨)는 한국어 유지. 결과 메시지 라인만 `VOCA_LOCALE` 적용. 전체 UI i18n은 v2 예정.
-- 어휘 풀 업데이트는 `tools/_curate.py` 빌드 (kiwipiepy 위한 별도 Python venv 필요).
+- shell 스크립트 출력은 `VOCA_LOCALE`을 통해 ko/en/ja로 로컬라이즈됩니다.
+- SKILL.md UI 문자열 (AskUserQuestion)은 주 언어 설정을 통해 locale 인식 렌더링을 지원합니다.
+- 어휘 풀 업데이트에는 `tools/_curate.py`가 필요합니다 (별도 Python venv).
 
 ## 라이선스
 
-CC BY-SA 4.0 — [LICENSE](./LICENSE) + [NOTICE](./NOTICE) 참조.
+CC BY-SA 4.0 -- [LICENSE](./LICENSE) 및 [NOTICE](./NOTICE) 참조.

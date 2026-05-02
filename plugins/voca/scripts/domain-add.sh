@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# /vocab domain add <name> [color]
+# /voca domain add <name> [color]
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"

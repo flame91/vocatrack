@@ -7,3 +7,7 @@ level.final.stage3_recommend	Stage 3 recommended — pool ceiling saturated. Run
 level.reset.no_profile	No profile — reset not needed.
 level.reset.all	Reset all language profile measurements.
 level.reset.lang	%s measurement data reset.
+level.test.header	%s Test
+level.test.question	Check the words you know ({stage}, {round}/{total}, q{qnum}).
+level.show.stale_hint	%s last measured %s days ago — /voca level test %s recommended
+queue.select_all_known	I know all the words on this page
