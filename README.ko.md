@@ -102,7 +102,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 - `bash` 4+, `jq`, `awk`, `sed`, `column`, `python3` (hook 타임스탬프용)
 - macOS / Linux / WSL
 
-## 제약 사항 (v0.1.6)
+## 제약 사항 (v0.1.8)
 
 - shell 스크립트 출력은 `VOCA_LOCALE`을 통해 ko/en/ja로 로컬라이즈됩니다.
 - SKILL.md UI 문자열 (AskUserQuestion)은 주 언어 설정을 통해 locale 인식 렌더링을 지원합니다.
