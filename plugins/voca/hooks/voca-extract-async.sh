@@ -87,13 +87,26 @@ case "$PRIMARY_CODE" in
   *)  PRIMARY_NAME="Korean" ;;
 esac
 
+LEVEL_CONTEXT=""
+if [[ -f "$PROFILE_PATH" ]]; then
+  LEVEL_CONTEXT=$(jq -r '
+    [.languages // {} | to_entries[]
+     | select(.value.estimated_size != null and .value.estimated_size > 0)
+     | "\(.key | ascii_upcase): ~\(.value.estimated_size) words (\(.value.level_band // "unknown"))"]
+    | if length > 0 then
+        "The user's tested vocabulary levels:\n" + join("\n")
+      else "" end
+  ' "$PROFILE_PATH" 2>/dev/null || echo "")
+fi
+
 PROMPT=$(cat <<'EOF'
 You extract candidate vocabulary words a {{PRIMARY}} speaker likely does not know from the text below.
-
+{{LEVEL_CONTEXT}}
 Pick at most {{MAX_CANDS}} words. Skip:
 - Common {{PRIMARY}} words
 - Brand / product / company names
 - Trivially-known English (the, system, code, file, user, server, client)
+- Words clearly below the user's demonstrated level in ANY language
 
 Prefer:
 - Specialized jargon (technical, medical, financial, legal, scientific)
@@ -110,6 +123,7 @@ EOF
 )
 PROMPT=${PROMPT//\{\{MAX_CANDS\}\}/$MAX_CANDS}
 PROMPT=${PROMPT//\{\{PRIMARY\}\}/$PRIMARY_NAME}
+PROMPT=${PROMPT//\{\{LEVEL_CONTEXT\}\}/$LEVEL_CONTEXT}
 PROMPT="${PROMPT}
 ${TRUNCATED}"
 

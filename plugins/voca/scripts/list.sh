@@ -12,8 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 N=$(config_get list.default_n 50)
 STATUS=$(config_get list.default_status active)
 SORT_SPEC=$(config_get list.sort "last_seen desc")
-MEANING_W=$(config_get list.widths.meaning 30)
-DOMAIN_W=$(config_get list.widths.domain 25)
+MEANING_W=$(config_get list.widths.meaning auto)
+DOMAIN_W=$(config_get list.widths.domain auto)
 
 COLUMNS=()
 while IFS= read -r line; do
@@ -43,6 +43,50 @@ case "$LANG_FILTER" in
   ""|all|en|ja|ko|mixed|other) ;;
   *) echo "unknown lang: $LANG_FILTER (en|ja|ko|mixed|other|all)" >&2; exit 1 ;;
 esac
+
+# Adaptive width: when meaning/domain is "auto", compute from terminal width
+if [[ "$MEANING_W" == "auto" || "$DOMAIN_W" == "auto" ]]; then
+  if stty size &>/dev/null; then
+    TERM_W=$(tput cols 2>/dev/null || echo 120)
+  else
+    TERM_W=140  # non-interactive (CI, Claude Code, pipe) — generous default
+  fi
+  FIXED=0
+  HAS_MEANING=0; HAS_DOMAIN=0
+  for c in "${COLUMNS[@]}"; do
+    case "$c" in
+      meaning) HAS_MEANING=1 ;;
+      domain)  HAS_DOMAIN=1 ;;
+      word)        FIXED=$((FIXED + 10)) ;;
+      lang)        FIXED=$((FIXED + 6)) ;;
+      source)      FIXED=$((FIXED + 10)) ;;
+      seen)        FIXED=$((FIXED + 6)) ;;
+      age)         FIXED=$((FIXED + 5)) ;;
+      via)         FIXED=$((FIXED + 11)) ;;
+      status)      FIXED=$((FIXED + 8)) ;;
+      rating)      FIXED=$((FIXED + 8)) ;;
+      example)     FIXED=$((FIXED + 42)) ;;
+      context)     FIXED=$((FIXED + 42)) ;;
+      note)        FIXED=$((FIXED + 32)) ;;
+      *)           FIXED=$((FIXED + 12)) ;;
+    esac
+  done
+  REMAIN=$((TERM_W - FIXED))
+  [[ $REMAIN -lt 20 ]] && REMAIN=20
+  if [[ $HAS_MEANING -eq 1 && $HAS_DOMAIN -eq 1 ]]; then
+    [[ "$MEANING_W" == "auto" ]] && MEANING_W=$((REMAIN * 65 / 100))
+    [[ "$DOMAIN_W" == "auto" ]] && DOMAIN_W=$((REMAIN * 35 / 100))
+  elif [[ $HAS_MEANING -eq 1 ]]; then
+    [[ "$MEANING_W" == "auto" ]] && MEANING_W=$REMAIN
+  elif [[ $HAS_DOMAIN -eq 1 ]]; then
+    [[ "$DOMAIN_W" == "auto" ]] && DOMAIN_W=$REMAIN
+  else
+    [[ "$MEANING_W" == "auto" ]] && MEANING_W=30
+    [[ "$DOMAIN_W" == "auto" ]] && DOMAIN_W=25
+  fi
+  [[ "$MEANING_W" -lt 12 ]] 2>/dev/null && MEANING_W=12
+  [[ "$DOMAIN_W" -lt 10 ]] 2>/dev/null && DOMAIN_W=10
+fi
 
 # Map sort spec → sort column + flags. voca.tsv 1-indexed:
 #   1 word, 8 seen_count, 9 first_seen_at, 10 last_seen_at
