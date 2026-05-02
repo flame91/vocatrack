@@ -27,6 +27,18 @@ else
   STATE_DIR="$HOME/.claude/state"
 fi
 
+# Guard: if STATE_DIR has no voca.tsv but another voca-* dir does, warn and redirect.
+if [[ ! -f "$STATE_DIR/voca.tsv" && -z "${VOCA_STATE_DIR:-}" ]]; then
+  for _d in "$HOME/.claude/plugins/data"/voca-*; do
+    if [[ -f "$_d/voca.tsv" ]]; then
+      echo "voca: warning — data found in $_d instead of $STATE_DIR; set VOCA_STATE_DIR to fix" >&2
+      STATE_DIR="$_d"
+      break
+    fi
+  done
+  unset _d
+fi
+
 MESSAGES_DIR="$PLUGIN_ROOT/messages"
 WORDLISTS_DIR="$PLUGIN_ROOT/scripts/wordlists"
 SEEDS_DIR="$PLUGIN_ROOT/data"

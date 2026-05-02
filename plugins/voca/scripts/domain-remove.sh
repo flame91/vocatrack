@@ -26,17 +26,16 @@ atomic_rewrite "$WORDS_TSV" -v n="$NAME" '
   {
     d = $7
     if (d == "" || d == "[]") { print; next }
-    # Naive: remove "name" entry from JSON array string
-    gsub("\""n"\",", "", d)
-    gsub(",\""n"\"", "", d)
-    gsub("\""n"\"", "", d)
-    gsub(",,", ",", d)
-    gsub("\\[,", "[", d)
-    gsub(",\\]", "]", d)
-    if (d == "[]" || d == "[ ]") d = "[]"
+    cmd = "printf %s " q(d) " | jq -c --arg n " q(n) " \047map(select(. != $n))\047 2>/dev/null"
+    if ((cmd | getline result) > 0) {
+      d = result
+    }
+    close(cmd)
+    if (d == "[]" || d == "") d = "[]"
     $7 = d
     print
   }
+  function q(s) { gsub(/\047/, "\047\\\047\047", s); return "\047" s "\047" }
 '
 
 echo "Removed domain \"$NAME\"."
