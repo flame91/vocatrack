@@ -293,6 +293,8 @@ If the user reacts to the picker without re-running `/voca queue` (e.g., names e
 
 One-time onboarding wizard. Skips the Prerequisites guard (this is the only workflow exempt from it).
 
+**UI language rule:** For Steps 1–2, use `UI_LANG=en` — the user's primary language is unknown. This applies to **all output**: AskUserQuestion text, narration, and status messages. From Step 3 onward (after primary is set), switch `UI_LANG` to the newly set primary language.
+
 1. **Check if already done**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh read | jq -r '.first_run_completed_at // empty'`. If non-empty → reply `[setup.already_done]` and stop.
 
 2. **Step 1 — Language selection** (multiSelect AskUserQuestion):
@@ -362,9 +364,9 @@ Given `$LANG` ∈ {en, ja, ko}:
 4. Pipe to `level-record.sh`. Pass its confirmation through verbatim. Below the 17000 native gate it prints **one** line (CEFR only): `EN 추정 어휘 7,930 (B2 — Upper-intermediate). 96 probes, 69 known.`. At/above 17000 it prints **two** lines (CEFR + native distribution reference): `EN 추정 어휘 22,500 (Native — Educated adult). 96 probes, 80 known. \n Native 분포 참고: 평균 native (성인) | testyourvocab.com 2013 (2M+ samples).`.
 5. **Stage 3 trigger check** — `level-record.sh` sets `.stage3_recommended` and prints `Stage 3 권장 …` on a separate line **only if** the user saturated Stage 1+2 (≥90% known AND midpoint within 5000 of probed max). When that line appears, immediately proceed to Stage 3 below; otherwise the test is complete.
 
-**Stage 3 — rare-band refinement (32 probes, 2 AskUserQuestion rounds)** — supported for KO, JA, EN. Each language ships its own `<lang>.rare.tsv`: ko (ko_full + kowiki titles, ceiling 45k), ja (BCCWJ, ceiling 50k), en (en_50k + enwiki titles, ceiling 60k).
+**Stage 3 — rare-band refinement (32 probes, 2 AskUserQuestion rounds)** — supported for KO, JA, EN. Each language ships its own `<lang>.rare.tsv`: ko (ko_full + kowiki titles, ceiling 45k), ja (BCCWJ, ceiling 50k, katakana loanwords excluded), en (en_50k + enwiki titles, ceiling 60k). All rare lists start at rank 20000.
 
-1. Build the cumulative exclusion list = every Stage 1 + Stage 2 word: `EXCL3=$(printf '%s' "$STAGE1_JSON" "$STAGE2_JSON" | jq -rs '[.[] | .probes[].word] | join(",")')`. Then `STAGE3_JSON=$(bash level-probes.sh --lang $LANG --stage stage3 --exclude-words "$EXCL3")` — 32 probes from `<lang>.rare.tsv` (rank 15000+) excluding everything already shown.
+1. Build the cumulative exclusion list = every Stage 1 + Stage 2 word: `EXCL3=$(printf '%s' "$STAGE1_JSON" "$STAGE2_JSON" | jq -rs '[.[] | .probes[].word] | join(",")')`. Then `STAGE3_JSON=$(bash level-probes.sh --lang $LANG --stage stage3 --exclude-words "$EXCL3")` — 32 probes from `<lang>.rare.tsv` (rank 20000+) excluding everything already shown.
 2. Build option blobs via `level-options.sh` and run **2 rounds** of AskUserQuestion (16 word-slots each, 4q × 4opts). Verify each round's payload with `level-options-verify.sh` before invoking — labels MUST round-trip to the probe JSON byte-for-byte.
 3. Build COMBINED results = Stage1 + Stage2 + Stage3 (128 entries when full pool):
    ```json

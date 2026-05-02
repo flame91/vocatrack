@@ -1,4 +1,8 @@
-# voca -- Claude Code Plugin
+<p align="center">
+  <img src="assets/vocatrack-logo.png" alt="vocatrack" width="128" />
+</p>
+
+# vocatrack
 
 英語・日本語・韓国語対応のローカルファースト語彙トラッカー。TestYourVocabスタイルのレベル推定機能付き。
 
@@ -45,6 +49,33 @@
 
 **Stop hook**がセッション終了時にバックグラウンドでHaikuを呼び出し、候補単語を自動抽出して既存の単語リストと重複排除します。
 
+## レベル評価
+
+`/voca level test`は3段階の適応型テストで語彙量を推定し、CEFRバンド（L2学習者向け）またはネイティブスピーカー参照バンドにマッピングします。
+
+### CEFRバンド（全言語共通）
+
+| バンド | 語彙量 | 説明 |
+|---|---|---|
+| A1 | < 1,500 | 入門 |
+| A2 | < 2,500 | 初級 |
+| B1 | < 5,000 | 中級 |
+| B2 | < 8,000 | 中上級 |
+| C1 | < 12,000 | 上級 |
+| C2 | < 17,000 | 最上級 |
+
+### ネイティブバンド
+
+| バンド | EN | JA | KO |
+|---|---|---|---|
+| 教養ある成人 | < 25,000 | < 25,000 | < 22,000 |
+| 上級 | < 35,000 | < 35,000 | < 30,000 |
+| トップ層 | < 45,000 | < 45,000 | < 40,000 |
+| 多読家 | < 55,000 | — | — |
+| 上位1% | ≥ 55,000 | ≥ 45,000 | ≥ 40,000 |
+
+**出典**: EN — [testyourvocab.com](http://testyourvocab.com/) 2013（200万人以上） · JA — NTT語彙数推定テスト補正版、阪本（1955） · KO — 김광해（2003）、국립국어원 빈도調査（2002）
+
 ## プライバシー
 
 Stop hookはローカルの`claude` CLIを介してAnthropicのHaiku APIを呼び出します。自身のAnthropicクレデンシャルのみを使用し、第三者には一切送信されません。
@@ -71,7 +102,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 - `bash` 4+、`jq`、`awk`、`sed`、`column`、`python3`（hookのタイムスタンプ用）
 - macOS / Linux / WSL
 
-## 制限事項 (v0.1.4)
+## 制限事項 (v0.1.6)
 
 - shellスクリプトの出力は`VOCA_LOCALE`でko/en/jaにローカライズされます。
 - SKILL.md UIの文字列（AskUserQuestion）は主言語設定によるlocale対応レンダリングをサポートします。

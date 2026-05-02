@@ -62,10 +62,10 @@ elif [[ "$STAGE" == "stage2" ]]; then
     echo "level-probes.sh: stage2 requires --band-min and --band-max" >&2; exit 2
   fi
 else
-  # stage3 — log-spaced over the entire rare-word range [15000, ceiling].
+  # stage3 — log-spaced over the entire rare-word range [20000, ceiling].
   # Mirrors RARE_RANK_LO in wordlists/_curate.py.
   TARGET_N=32
-  LO=15000
+  LO=20000
   HI="$LANG_HI"
 fi
 
