@@ -36,7 +36,7 @@ Use the corresponding column below for all AskUserQuestion text. Fallback to `en
 | review.learning | 아직 학습 중 | Still learning | まだ学習中 |
 | review.unsure | 패스 | Pass | パス |
 | review.continue | %d개 더 평가하시겠어요? | Rate %d more? | あと%d語を評価しますか？ |
-| queue.empty_scan | 큐가 비어 추출을 시작했습니다 (~30-60s). 잠시 후 /voca queue 다시 실행. | Queue empty — extraction started (~30-60s). Re-run /voca queue shortly. | キューが空です — 抽出開始 (~30-60秒)。しばらく後に /voca queue を再実行。 |
+| queue.empty | 큐가 비어 있습니다. /voca scan 으로 추출을 시작하세요. | Queue is empty. Run /voca scan to extract candidates. | キューが空です。/voca scan で抽出を開始してください。 |
 | queue.no_new | 큐에 새 단어가 없습니다 (전체 큐: %d개). | No new words in queue (total: %d). | キューに新しい単語はありません (全体: %d語)。 |
 | queue.question | 추가할 단어를 골라주세요 (선택 안 한 항목은 reject로 처리됩니다). | Select words to add (unselected items will be rejected). | 追加する単語を選んでください (未選択はreject)。 |
 | queue.select_all_known | 이 페이지의 모든 단어를 알고 있음 | I know all the words on this page | このページの全単語を知っています |
@@ -174,7 +174,9 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
 
 ### Queue — `/voca queue` (single entry point)
 
-`/voca queue` is the only queue subcommand. It launches the **Candidates Picker UI** (AskUserQuestion). All previous sub-options (`accept`, `reject`, `candidates`, `scan`, `clear`) have been removed — selection happens interactively, and the rare destructive/additive operations are reachable via natural language.
+`/voca queue` is the only queue subcommand. It launches the **Candidates Picker UI** (AskUserQuestion). Selection happens interactively; the only flag is `--flush` (clear the queue without a picker).
+
+**`--flush` shortcut**: If the arguments contain `--flush`, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/queue-clear.sh`, pass through its 1-line confirmation, and stop. Do not proceed to the picker flow below.
 
 > **Execution mode (hybrid)**: AskUserQuestion can only render its UI from the main session — a subagent cannot prompt the user. So `/voca queue` is split:
 > - **Main context** runs steps 1–4 (read queue → dedup → mark `shown:true` → AskUserQuestion picker round). These are bash + a single AskUserQuestion call; no per-word inference here.
@@ -185,12 +187,10 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
 **Flow:**
 
 1. Read `${CLAUDE_PLUGIN_DATA}/voca-candidates.json`.
-2. **If `pending` is empty** → do NOT scan in-context. Spawn the async extractor on the parent session transcript and stop:
-   - find latest transcript: `LATEST=$(ls -t ~/.claude/projects/-${PWD//\//-}/*.jsonl 2>/dev/null | head -1)` (fallback: search `~/.claude/projects/*/`)
-   - `nohup bash ${CLAUDE_PLUGIN_ROOT}/hooks/voca-extract-async.sh "$LATEST" full >>${CLAUDE_PLUGIN_DATA}/voca-hook.log 2>&1 &`
-   - reply: `[queue.empty_scan]`
-3. **Filter** `pending` to entries with `shown: false` (unshown only). If no unshown entries remain, reply `[queue.no_new]` and stop. Rationale: the user does not want to be re-prompted for candidates they already saw and dismissed in a previous picker render.
-4. **Picker** — Take **up to 15 unshown candidates** for this round (one AskUserQuestion call can pack max 4 questions × 4 options = 16 slots; one slot is reserved for the `[queue.select_all_known]` option). **Before** invoking AskUserQuestion, set `shown: true` on those entries and persist `voca-candidates.json` immediately, so that even a dismiss-without-response "consumes" the show. Then build **one** AskUserQuestion call with multiple questions (`multiSelect: true` on each):
+2. **If `pending` is empty** → reply `[queue.empty]` and stop. Do NOT auto-spawn the extractor — the user must run `/voca scan` explicitly.
+3. **Re-dedup**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/queue-dedup.sh` — removes candidates that were added to `voca.tsv` (or marked as already-known) since extraction.
+4. **Filter** `pending` to entries with `shown: false` (unshown only). If no unshown entries remain, reply `[queue.no_new]` and stop. Rationale: the user does not want to be re-prompted for candidates they already saw and dismissed in a previous picker render.
+5. **Picker** — Take **up to 15 unshown candidates** for this round (one AskUserQuestion call can pack max 4 questions × 4 options = 16 slots; one slot is reserved for the `[queue.select_all_known]` option). **Before** invoking AskUserQuestion, set `shown: true` on those entries and persist `voca-candidates.json` immediately, so that even a dismiss-without-response "consumes" the show. Then build **one** AskUserQuestion call with multiple questions (`multiSelect: true` on each):
    - Distribute the N candidates into questions of up to 4 word-options each, in order. Append one extra option `[queue.select_all_known]` (description: `[queue.select_all_desc]`) at the **end of the last question**.
    - **`minItems: 2` guard**: if the last question would end up with the `[queue.select_all_known]` option alone (1 option), pull one word from the previous question into the last one so each question has ≥ 2 options. Concretely:
      - N=1 → `q0=[A, ALL]`
@@ -203,7 +203,7 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
      (ALL = `[queue.select_all_known]` option)
    - Each word-option: `{label:"<word>", description:"<lang> · <hint>"}`
    - question text: `[queue.question]` — same on every question. header: `Voca queue` (truncate per-page if needed).
-5. **Hand off to subagent.** Resolve the user's primary language **before** building the subagent prompt: `PRIMARY=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh primary_lang_name)`. Substitute that string into the `{{PRIMARY}}` placeholder when synthesizing the prompt below. Spawn a `general-purpose` Agent with the resulting prompt. The subagent receives the selections + 15-word payload and processes:
+6. **Hand off to subagent.** Resolve the user's primary language **before** building the subagent prompt: `PRIMARY=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh primary_lang_name)`. Substitute that string into the `{{PRIMARY}}` placeholder when synthesizing the prompt below. Spawn a `general-purpose` Agent with the resulting prompt. The subagent receives the selections + 15-word payload and processes:
 
    ```
    You are processing the result of a /voca queue picker round. The user has already chosen — do NOT call AskUserQuestion or the picker again.
@@ -236,7 +236,7 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
      - otherwise → `"user skipped via /voca queue UI"`
    - Remove all 15 shown candidates (regardless of selection) from `voca-candidates.json`.
    - Reply 1 line. Split rejected into knew vs skip when both exist: `Accepted: A (tag1,tag2), B. Rejected (knew): C, D. Rejected (skip): E. Queue: N remaining.` Omit the empty groups.
-6. **Main context** passes the subagent's 1-line reply through verbatim. If more unshown candidates remain (i.e. N was capped at 15), ask in plain text: `[queue.continue]` (no GUI).
+7. **Main context** passes the subagent's 1-line reply through verbatim. If more unshown candidates remain (i.e. N was capped at 15), ask in plain text: `[queue.continue]` (no GUI).
 
 ### Scan workflow (invoked by `/voca scan`, `/voca queue` when empty, or by natural language "collect words from this session" / "이 세션 단어 모아줘")
 
@@ -252,7 +252,7 @@ Check the lock directory first:
 - If `${CLAUDE_PLUGIN_DATA}/.voca-extract.lock.d` exists and was created < 120s ago → reply `[scan.already_running]` and skip spawning.
 - Otherwise → spawn as above, reply `[scan.spawned]`. If `voca-candidates.json` already has pending entries, append: `[scan.status_queue]` with the count.
 
-The async hook (`voca-extract-async.sh`) already filters candidates against the full `voca.tsv` regardless of status/rating, so no additional dedup is required here.
+The async hook (`voca-extract-async.sh`) filters candidates against the full `voca.tsv` at extraction time. A second dedup pass runs at queue display time (step 3) to catch words added between extraction and display.
 
 #### Scan status (`/voca scan --status`)
 

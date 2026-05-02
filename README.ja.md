@@ -102,7 +102,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 - `bash` 4+、`jq`、`awk`、`sed`、`column`、`python3`（hookのタイムスタンプ用）
 - macOS / Linux / WSL
 
-## 制限事項 (v0.1.6)
+## 制限事項 (v0.1.8)
 
 - shellスクリプトの出力は`VOCA_LOCALE`でko/en/jaにローカライズされます。
 - SKILL.md UIの文字列（AskUserQuestion）は主言語設定によるlocale対応レンダリングをサポートします。

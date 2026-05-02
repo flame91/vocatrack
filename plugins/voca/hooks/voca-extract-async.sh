@@ -51,11 +51,11 @@ fi
 # --- pull text from transcript (mode-dependent) ------------------------
 if [[ "$MODE" == "full" ]]; then
   LAST=$(jq -s '
-    map(select(.type == "assistant" or .type == "user")) |
-    map(.message.content // [] | (if type == "array" then . else [] end)) |
-    flatten |
-    map(select(type == "object" and .type == "text") | .text) |
-    join("\n\n")
+    [ .[] | select(.type == "assistant" or .type == "user") |
+      (.type | if . == "user" then "[USER]" else "[ASSISTANT]" end) as $tag |
+      ((.message.content // []) | (if type == "array" then . else [] end) |
+       map(select(type == "object" and .type == "text") | .text) | join("\n")) as $txt |
+      "\($tag)\n\($txt)" ] | join("\n\n")
   ' "$TRANSCRIPT" 2>/dev/null | jq -r . 2>/dev/null || echo "")
   MAX_CHARS=30000
   MAX_CANDS=10
@@ -87,6 +87,14 @@ case "$PRIMARY_CODE" in
   *)  PRIMARY_NAME="Korean" ;;
 esac
 
+TRACKED_CONTEXT=""
+if [[ -f "$WORDS_TSV" ]]; then
+  TRACKED_WORDS=$(awk -F'\t' 'NR>1 && $1!="" {print $1}' "$WORDS_TSV" | head -200 | paste -sd', ' -)
+  if [[ -n "$TRACKED_WORDS" ]]; then
+    TRACKED_CONTEXT="- Equivalent forms (translations, transliterations, loanwords) of already-tracked words: ${TRACKED_WORDS}"
+  fi
+fi
+
 LEVEL_CONTEXT=""
 if [[ -f "$PROFILE_PATH" ]]; then
   LEVEL_CONTEXT=$(jq -r '
@@ -94,7 +102,7 @@ if [[ -f "$PROFILE_PATH" ]]; then
      | select(.value.estimated_size != null and .value.estimated_size > 0)
      | "\(.key | ascii_upcase): ~\(.value.estimated_size) words (\(.value.level_band // "unknown"))"]
     | if length > 0 then
-        "The user's tested vocabulary levels:\n" + join("\n")
+        "Tested vocabulary levels:\\n" + join("\\n")
       else "" end
   ' "$PROFILE_PATH" 2>/dev/null || echo "")
 fi
@@ -107,6 +115,8 @@ Pick at most {{MAX_CANDS}} words. Skip:
 - Brand / product / company names
 - Trivially-known English (the, system, code, file, user, server, client)
 - Words clearly below the user's demonstrated level in ANY language
+- Words that appear after [USER] tags — the user typed them and already knows them
+{{TRACKED_CONTEXT}}
 
 Prefer:
 - Specialized jargon (technical, medical, financial, legal, scientific)
@@ -124,6 +134,7 @@ EOF
 PROMPT=${PROMPT//\{\{MAX_CANDS\}\}/$MAX_CANDS}
 PROMPT=${PROMPT//\{\{PRIMARY\}\}/$PRIMARY_NAME}
 PROMPT=${PROMPT//\{\{LEVEL_CONTEXT\}\}/$LEVEL_CONTEXT}
+PROMPT=${PROMPT//\{\{TRACKED_CONTEXT\}\}/$TRACKED_CONTEXT}
 PROMPT="${PROMPT}
 ${TRUNCATED}"
 

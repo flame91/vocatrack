@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.8] - 2026-05-02
+
+### Added
+- `/voca queue --flush` flag: clear the queue without launching the picker
+- `queue-dedup.sh`: re-filters pending candidates against current `voca.tsv` at queue display time, catching words added between extraction and display
+
+### Changed
+- Scan extraction (full mode) now tags transcript blocks with `[USER]`/`[ASSISTANT]` markers and instructs the LLM to skip words the user typed themselves
+- Scan prompt includes already-tracked words so the LLM can skip cross-language equivalents (e.g., "스무딩" tracked → "smoothing" skipped)
+- `/voca queue` no longer auto-spawns the extractor when the queue is empty; replies with a prompt to run `/voca scan` instead
+
 ## [0.1.7] - 2026-05-02
 
 ### Added
