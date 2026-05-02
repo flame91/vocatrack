@@ -110,6 +110,25 @@ if [[ "$STAGE" == "stage2" ]]; then
   fi
 fi
 
+# Stage 3 smoothing: cap the estimate within ±25% of the Stage 2 value to
+# prevent rare-list noise from producing wild swings.
+if [[ "$STAGE" == "stage3" ]]; then
+  S2_EST=$(printf '%s' "$CURRENT_LANG" | jq -r '.estimated_size // 0')
+  if (( S2_EST > 0 )); then
+    FLOOR=$(awk -v e="$S2_EST" 'BEGIN{ printf "%d", e * 0.75 }')
+    CAP=$(awk -v e="$S2_EST" 'BEGIN{ printf "%d", e * 1.25 }')
+    if (( ROUNDED > CAP )); then
+      ROUNDED=$CAP
+      BAND=$(band_for_size "$ROUNDED" "$LANG_ARG")
+      PCTL=$(percentile_for_size "$ROUNDED" "$LANG_ARG")
+    elif (( ROUNDED < FLOOR )); then
+      ROUNDED=$FLOOR
+      BAND=$(band_for_size "$ROUNDED" "$LANG_ARG")
+      PCTL=$(percentile_for_size "$ROUNDED" "$LANG_ARG")
+    fi
+  fi
+fi
+
 NEW_LANG=$(printf '%s' "$CURRENT_LANG" \
   | jq \
       --arg t "$TODAY" \

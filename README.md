@@ -1,4 +1,8 @@
-# voca -- Claude Code Plugin
+<p align="center">
+  <img src="assets/vocatrack-logo.png" alt="vocatrack" width="128" />
+</p>
+
+# vocatrack
 
 Local-first vocabulary tracker with TestYourVocab-style level estimation for English, Japanese, and Korean.
 
@@ -45,6 +49,33 @@ This walks you through language selection, primary language, scan model, and lev
 
 The **Stop hook** auto-extracts candidate words from each session by calling Haiku in the background and deduplicating against your existing wordlist.
 
+## Level Assessment
+
+`/voca level test` estimates your vocabulary size through a 3-stage adaptive test, then maps the result to CEFR bands (for L2 learners) or native-speaker reference bands.
+
+### CEFR Bands (all languages)
+
+| Band | Vocab Size | Description |
+|---|---|---|
+| A1 | < 1,500 | Beginner |
+| A2 | < 2,500 | Elementary |
+| B1 | < 5,000 | Intermediate |
+| B2 | < 8,000 | Upper-intermediate |
+| C1 | < 12,000 | Advanced |
+| C2 | < 17,000 | Proficient |
+
+### Native-Speaker Bands
+
+| Band | EN | JA | KO |
+|---|---|---|---|
+| Educated adult | < 25,000 | < 25,000 | < 22,000 |
+| Advanced | < 35,000 | < 35,000 | < 30,000 |
+| Top tier | < 45,000 | < 45,000 | < 40,000 |
+| Heavy reader | < 55,000 | — | — |
+| Top 1% | ≥ 55,000 | ≥ 45,000 | ≥ 40,000 |
+
+**Sources**: EN — [testyourvocab.com](http://testyourvocab.com/) 2013 (2M+ participants) · JA — NTT語彙数推定テスト補正版, 阪本 (1955) · KO — 김광해 (2003), 국립국어원 빈도조사 (2002)
+
 ## Privacy
 
 The Stop hook calls Anthropic's Haiku API via the local `claude` CLI using your own credentials. Nothing is sent to any third party.
@@ -71,7 +102,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 - `bash` 4+, `jq`, `awk`, `sed`, `column`, `python3` (for hook timestamps)
 - macOS / Linux / WSL
 
-## Limitations (v0.1.4)
+## Limitations (v0.1.6)
 
 - Shell script outputs are localized (ko/en/ja) via `VOCA_LOCALE`.
 - SKILL.md UI strings (AskUserQuestion) support locale-aware rendering via the primary language setting.

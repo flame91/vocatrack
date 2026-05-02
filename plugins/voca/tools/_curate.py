@@ -68,7 +68,7 @@ LANG_CEILING = {
 # Stage 3 lower-rank cutoff. Probes below this aren't "rare" enough to
 # discriminate between near-native and native — Stage 3 is exclusively the
 # upper-band refinement, run only when Stage 1+2 saturate.
-RARE_RANK_LO = 15000
+RARE_RANK_LO = 20000
 
 # ---------- per-language filters ----------
 
@@ -292,6 +292,9 @@ JA_REJECT_CHARS = set("们这复实远过会经买卖东书听说问讲语体长
 
 KATA_ONLY = re.compile(r"^[゠-ヿー]+$")
 HIRA_ONLY = re.compile(r"^[぀-ゟー]+$")
+# Vocal exclamations: single-mora + geminate っ (くっ, ぐっ, はっ, …).
+# These appear in prose as sound effects but are not vocabulary.
+JA_VOCAL_EXCL_PAT = re.compile(r"^[ぁ-ん]っ$")
 # Mimetic / onomatopoeic words (擬態語・擬音語). These are valid Japanese but
 # heavily skew the test against L2 learners — natives know them all from age 5
 # while advanced L2 learners typically miss them. Filtered out so the score
@@ -320,6 +323,8 @@ JA_MIMETIC_BLOCK = {
     "ごーん","きゅん","づら","にべ","がん","がた","がく","おもろ","づか",
     "うさ","がちゃ","づる","ぱっ","ぴっ","とん","どん","かん","ぱん",
     "ずり","ぞろり","かちり",
+    # groans / exclamations that appear in prose but aren't vocabulary
+    "うう","わっ","ぷっ","ぷう","ぷぷ","があん","ぎく",
     # additional ABCD-pattern mimetics surfaced from BCCWJ probe inspection
     "こんがり","さっくり","しどろもどろ","きっかり","かっちり","こざっぱり",
     "ちっぽけ","くるり","ぴしり","ふんわり","こっそり","てっきり","ばっちり",
@@ -329,7 +334,7 @@ JA_MIMETIC_BLOCK = {
     "ちんぽ","まんこ","おっぱい",
 }
 
-def ja_ok(w: str, rank: int = 0) -> bool:
+def ja_ok(w: str, rank: int = 0, rare: bool = False) -> bool:
     # Drop tokens with any non-Japanese letter or digit/punct
     if any(unicodedata.category(c).startswith(("P","N","Z","S","C")) for c in w):
         return False
@@ -352,14 +357,19 @@ def ja_ok(w: str, rank: int = 0) -> bool:
         # are unambiguous case markers
         if w[-1] in ("に", "を", "が", "は", "で"):
             return False
-    # reject katakana-only words >= 4 chars at high rank (most are character
-    # names from anime/movies; common loanwords are usually shorter or earlier)
-    if rank >= 1500 and KATA_ONLY.fullmatch(w) and len(w) >= 4:
-        return False
+    # reject katakana-only words: in rare lists ALL katakana are blocked
+    # (loanwords inflate Stage 3 estimates); in main lists only >= 4 chars
+    if KATA_ONLY.fullmatch(w):
+        if rare:
+            return False
+        if rank >= 1500 and len(w) >= 4:
+            return False
     # reject mimetic / onomatopoeic words (see JA_MIMETIC_* above)
     if w in JA_MIMETIC_BLOCK:
         return False
     if HIRA_ONLY.fullmatch(w):
+        if JA_VOCAL_EXCL_PAT.fullmatch(w):
+            return False
         if (JA_MIMETIC_REDUP_2.fullmatch(w)
                 or JA_MIMETIC_REDUP_3.fullmatch(w)
                 or JA_MIMETIC_REDUP_4.fullmatch(w)):
@@ -902,8 +912,12 @@ def main():
         write_tsv(lang, picks, suffix="probes")
         # Stage 3 rare-probe file — emitted for every language. ko uses
         # ko_full + kowiki, ja uses BCCWJ, en uses en_50k + enwiki titles.
+        # For JA, re-filter with rare=True to strip all katakana loanwords.
         if max_rank > RARE_RANK_LO:
-            rare = pick_log_spaced(cands, NUM_PROBES, RARE_RANK_LO, hi)
+            rare_cands = cands
+            if lang == "ja":
+                rare_cands = [(r, w) for r, w in cands if ja_ok(w, rank=r, rare=True)]
+            rare = pick_log_spaced(rare_cands, NUM_PROBES, RARE_RANK_LO, hi)
             write_tsv(lang, rare, suffix="rare")
 
 if __name__ == "__main__":

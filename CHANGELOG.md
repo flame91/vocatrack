@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.6] - 2026-05-02
+
+### Added
+- Level assessment reference table in all READMEs: CEFR bands (A1–C2), native-speaker bands per language, source citations (testyourvocab.com, NTT語彙数推定テスト, 김광해 2003)
+- Stage 3 smoothing guard: caps estimate within ±25% of Stage 2 to prevent rare-list noise from producing wild swings
+- Systematic vocal exclamation filter (`JA_VOCAL_EXCL_PAT`): pattern-based `Xっ` detection + explicit block for Japanese wordlists
+
+### Changed
+- README header: `voca -- Claude Code Plugin` → `vocatrack` with centered logo
+- `RARE_RANK_LO` raised from 15000 to 20000 across `_curate.py`, `level-probes.sh`, and `SKILL.md` to reduce Stage 2/3 overlap
+- JA rare wordlist: all katakana loanwords blocked in rare mode, vocal exclamations removed (199 → 128 entries)
+- KO rare wordlist: entries below rank 20000 removed (197 → 142 entries)
+- EN rare wordlist: entries below rank 20000 removed (200 → 158 entries)
+
+### Fixed
+- Stage 3 level estimation accuracy: resolved ~32% overestimation in JA caused by katakana loanword contamination, low `RARE_RANK_LO`, and uncapped Stage 3 override
+
 ## [0.1.5] - 2026-05-02
 
 ### Added
