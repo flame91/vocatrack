@@ -11,10 +11,21 @@ Local-first vocabulary tracker with TestYourVocab-style level estimation for Eng
 /plugin install voca@flame91-voca-marketplace
 ```
 
+## Quick Start
+
+After installing, run the setup wizard:
+
+```text
+/voca setup
+```
+
+This walks you through language selection, primary language, scan model, and level test. All other `/voca` commands are blocked until setup is complete.
+
 ## Features
 
 | Command | Description |
 |---|---|
+| `/voca setup` | First-run setup wizard (language, scan model, level test) |
 | `/voca add <word>` | Record a word with meaning, example, context, and tags |
 | `/voca list` | List recent vocabulary entries in table view |
 | `/voca search <q>` | Case-insensitive search across word/meaning/example/context |
@@ -25,6 +36,7 @@ Local-first vocabulary tracker with TestYourVocab-style level estimation for Eng
 | `/voca master <word>` | Promote a word to mastered |
 | `/voca restore <word>` | Restore an archived or mastered word to active |
 | `/voca level test [en\|ja\|ko]` | 3-stage adaptive vocabulary size estimate |
+| `/voca scan` | Scan session transcript for candidate words (async) |
 | `/voca queue` | Picker UI for auto-extracted candidate words |
 | `/voca config` | Interactive configuration |
 | `/voca domain` | Manage domain tag registry (list / add / remove) |
@@ -59,7 +71,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 - `bash` 4+, `jq`, `awk`, `sed`, `column`, `python3` (for hook timestamps)
 - macOS / Linux / WSL
 
-## Limitations (v0.1.3)
+## Limitations (v0.1.4)
 
 - Shell script outputs are localized (ko/en/ja) via `VOCA_LOCALE`.
 - SKILL.md UI strings (AskUserQuestion) support locale-aware rendering via the primary language setting.

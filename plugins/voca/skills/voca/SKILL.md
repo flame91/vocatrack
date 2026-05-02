@@ -1,6 +1,6 @@
 ---
 name: voca
-description: Personal vocabulary tracker — adds, queries, rates words; manages tag options (domain/source); processes the Stop-hook candidate queue via interactive picker; scans the current session to backfill missed candidates. Backed by local TSV files. Use when the user says things like "이 단어 저장해줘", "방금 그 단어 모르겠어", "지금까지 추가한 단어 보여줘", "/voca add/list/review/rate/archive/master/restore/domain/source/queue/scan", "단어장 보여줘", "infra 태그 추가해줘", "큐 비워줘", "MCP만 추가하고 나머지는 무시", "지금까지 대화 다시 훑어줘", "이 세션 단어 모아줘", "세션 스캔해줘", or when the user explicitly asks to record a word, manage vocab tags, accept/reject candidates, or backfill candidates from the current conversation.
+description: Personal vocabulary tracker — adds, queries, rates words; manages tag options (domain/source); processes the Stop-hook candidate queue via interactive picker; scans the current session to backfill missed candidates. Backed by local TSV files. Use when the user says things like "이 단어 저장해줘", "방금 그 단어 모르겠어", "지금까지 추가한 단어 보여줘", "/voca setup/add/list/review/rate/archive/master/restore/domain/source/queue/scan", "단어장 보여줘", "infra 태그 추가해줘", "큐 비워줘", "MCP만 추가하고 나머지는 무시", "지금까지 대화 다시 훑어줘", "이 세션 단어 모아줘", "세션 스캔해줘", or when the user explicitly asks to record a word, manage vocab tags, accept/reject candidates, or backfill candidates from the current conversation.
 ---
 
 # Voca Tracker
@@ -11,6 +11,16 @@ Local-first vocabulary collection backed by TSV files. No external services, no 
 
 - `${CLAUDE_PLUGIN_ROOT}` — read-only plugin install dir (scripts, wordlists, messages, data)
 - `${CLAUDE_PLUGIN_DATA}` — per-user writable state dir (voca.tsv, profile, candidates, config)
+
+## Prerequisites
+
+Before any workflow below (except **Setup workflow** itself), check setup completion:
+
+```bash
+SETUP_DONE=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh read | jq -r '.first_run_completed_at // empty')
+```
+
+If `$SETUP_DONE` is empty → reply `[setup.required]` and **stop**. Do not proceed with the requested command.
 
 ## UI Strings
 
@@ -68,6 +78,10 @@ Use the corresponding column below for all AskUserQuestion text. Fallback to `en
 | lang.ja_desc | ja 측정 | ja measurement | ja 測定 |
 | lang.en_desc | en 측정 | en measurement | en 測定 |
 | terminal.width_question | 대략적 터미널 폭은? | Approximate terminal width? | ターミナル幅はおよそ？ |
+| setup.required | 먼저 /voca setup을 실행해주세요. | Run /voca setup first. | まず /voca setup を実行してください。 |
+| setup.already_done | 초기 설정이 이미 완료되었습니다. /voca config로 변경할 수 있습니다. | Setup already completed. Use /voca config to make changes. | 初期設定は完了済みです。/voca config で変更できます。 |
+| setup.scan_model_question | 단어 추출에 사용할 모델을 선택하세요. | Select the model for word extraction. | 単語抽出に使用するモデルを選択してください。 |
+| setup.complete | 초기 설정 완료! | Setup complete! | 初期設定完了！ |
 | scan.spawned | 전체 대화 추출을 시작했습니다 (~30-60s). 완료 후 /voca queue 실행. | Spawned full-transcript extraction (~30-60s). Run /voca queue when ready. | 全会話の抽出を開始しました (~30-60秒)。完了後 /voca queue を実行。 |
 | scan.already_running | 추출이 이미 진행 중입니다. 잠시 후 /voca queue 실행. | Extraction already in progress. Run /voca queue shortly. | 抽出はすでに進行中です。しばらく後に /voca queue を実行。 |
 | scan.status_running | 추출기 실행 중. | Extractor running. | 抽出器実行中。 |
@@ -275,31 +289,42 @@ If the user reacts to the picker without re-running `/voca queue` (e.g., names e
 
 `bash ${CLAUDE_PLUGIN_ROOT}/scripts/stats.sh` — at-a-glance dashboard. Pass through verbatim. Output starts with the **Vocabulary level** block (en/ja/ko estimated size + CEFR band + tested-at + `+N since`), then lifecycle/rating counts, daily activity sparklines (added/mastered/archived for last 7d), velocity & streaks, time-to-master, top domains/sources/lang, hook precision/latency/via/commands/reject reasons, top by seen_count, stale active words.
 
+### Setup workflow (`/voca setup` — first-run only)
+
+One-time onboarding wizard. Skips the Prerequisites guard (this is the only workflow exempt from it).
+
+1. **Check if already done**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh read | jq -r '.first_run_completed_at // empty'`. If non-empty → reply `[setup.already_done]` and stop.
+
+2. **Step 1 — Language selection** (multiSelect AskUserQuestion):
+   - question: `[setup.lang_question]` · header: `"Voca setup"`
+   - options: `[{label:"[lang.ko]", description:"[lang.ko_desc]"}, {label:"[lang.ja]", description:"[lang.ja_desc]"}, {label:"[lang.en]", description:"[lang.en_desc]"}]`
+   - For each language **not** selected, persist `{"spoken": false}`:
+     ```bash
+     echo '{"spoken": false}' | bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh write_lang <lang>
+     ```
+
+3. **Step 2 — Primary language** (controls `meaning` / `hint` output):
+   - If exactly **1** language was selected → auto-set: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/profile-set-primary.sh <code>`.
+   - If **2+** languages were selected → AskUserQuestion (single-select), question `[setup.primary_question]`, header `"Primary lang"`, options drawn from the selected set (label format `[lang.ko] (ko)` / `[lang.en] (en)` / `[lang.ja] (ja)`). On response, run `profile-set-primary.sh <code>`.
+
+4. **Step 3 — Scan model** (single-select AskUserQuestion):
+   - question: `[setup.scan_model_question]` · header: `"Scan model"`
+   - options: `[{label:"haiku", description:"Fast & cheap (Recommended)"}, {label:"sonnet", description:"3× cost, better accuracy"}, {label:"opus", description:"5× cost, best accuracy"}]`
+   - On response: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/config.sh set scan.model <selection>`
+
+5. **Step 4 — Level test**: For each selected language, run **Test Flow** (below) sequentially (en → ja → ko order).
+
+6. **Step 5 — Complete**: Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh first_run_complete`, then `bash ${CLAUDE_PLUGIN_ROOT}/scripts/level-show.sh`. Pass output through verbatim. Reply `[setup.complete]`.
+
 ### Vocabulary level (`/voca level`, `/voca level test [lang]`, `/voca level reset [lang|all]`)
 
 Vocabulary-size estimation modeled on testyourvocab.com / Preply: log-spaced frequency-rank probes + midpoint formula. Profile lives in `${CLAUDE_PLUGIN_DATA}/voca-profile.json`. Supported languages: `en`, `ja`, `ko`. Probe wordlists are bundled at `${CLAUDE_PLUGIN_ROOT}/scripts/wordlists/{en,ja,ko}.probes.tsv` (curated subset of hermitdave/FrequencyWords, CC-BY-SA 4.0).
 
 Routing inside the skill:
 
-- `/voca level` (no profile yet, OR every language `spoken:false`) → **Setup Wizard** below.
 - `/voca level` (profile present) → fast-path `level-show.sh` (handled by `voca.md`).
 - `/voca level test [lang]` → **Test Flow** for the named language (or ask via AskUserQuestion if omitted).
 - `/voca level reset [lang|all]` → fast-path `level-reset.sh`.
-
-#### Setup Wizard
-
-1. AskUserQuestion #1, **multiSelect: true**:
-   - question: `[setup.lang_question]` · header: `"Voca setup"`
-   - options: `[{label:"[lang.ko]", description:"[lang.ko_desc]"}, {label:"[lang.ja]", description:"[lang.ja_desc]"}, {label:"[lang.en]", description:"[lang.en_desc]"}]`
-2. For each language **not** selected, persist `{"spoken": false}`:
-   ```bash
-   echo '{"spoken": false}' | bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh write_lang <lang>
-   ```
-3. For each selected language, run **Test Flow** (below) sequentially (en → ja → ko order — keeps probe logic identical regardless of selection set).
-4. **Set primary language** (controls `meaning` / `hint` output):
-   - If exactly **1** language was selected → auto-set: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/profile-set-primary.sh <code>`.
-   - If **2+** languages were selected → AskUserQuestion (single-select), question `[setup.primary_question]`, header `"Primary lang"`, options drawn from the selected set (label format `[lang.ko] (ko)` / `[lang.en] (en)` / `[lang.ja] (ja)`). On response, run `profile-set-primary.sh <code>`.
-5. After primary is set, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh first_run_complete` and then call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/level-show.sh` once. Pass its output through verbatim.
 
 #### Test Flow (one language)
 

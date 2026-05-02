@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.5] - 2026-05-02
+
+### Added
+- `/voca setup` command: first-run onboarding wizard (language selection, primary language, scan model, level test)
+- Prerequisites guard: all `/voca` commands are blocked until setup is complete
+- 4 new i18n UI string keys: `setup.required`, `setup.already_done`, `setup.scan_model_question`, `setup.complete`
+- Quick Start section in all 3 READMEs (en/ko/ja)
+
+### Changed
+- First-run wizard moved from `/voca level` to `/voca setup`
+- `/voca level` now only handles profile display and re-testing
+- plugin.json name reverted from `vocatrack` to `voca` (CLI prefix stays `/voca:`)
+
 ## [0.1.4] - 2026-05-02
 
 ### Added
@@ -74,6 +87,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Domain and source tag registries with color support
 - CC BY-SA 4.0 license
 
+[0.1.5]: https://github.com/flame91/vocatrack/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/flame91/vocatrack/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/flame91/vocatrack/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/flame91/vocatrack/compare/v0.1.1...v0.1.2

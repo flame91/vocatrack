@@ -11,10 +11,21 @@
 /plugin install voca@flame91-voca-marketplace
 ```
 
+## クイックスタート
+
+インストール後、セットアップウィザードを実行してください：
+
+```text
+/voca setup
+```
+
+言語選択、主言語、スキャンモデル、レベルテストを案内します。セットアップ完了前は他の`/voca`コマンドは使用できません。
+
 ## 機能
 
 | コマンド | 説明 |
 |---|---|
+| `/voca setup` | 初回セットアップウィザード（言語、スキャンモデル、レベルテスト） |
 | `/voca add <単語>` | 意味、例文、コンテキスト、タグとともに記録 |
 | `/voca list` | 最近の語彙エントリをテーブル表示 |
 | `/voca search <q>` | 単語/意味/例文/コンテキストの大文字小文字無視検索 |
@@ -25,6 +36,7 @@
 | `/voca master <単語>` | 単語をmasteredに昇格 |
 | `/voca restore <単語>` | アーカイブ/mastered単語をactiveに復元 |
 | `/voca level test [en\|ja\|ko]` | 3段階適応型語彙量推定 |
+| `/voca scan` | セッション会話から候補単語を抽出（非同期） |
 | `/voca queue` | 自動抽出された候補単語のpicker UI |
 | `/voca config` | 対話型設定 |
 | `/voca domain` | ドメインタグレジストリ管理（一覧 / 追加 / 削除） |
@@ -59,7 +71,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 - `bash` 4+、`jq`、`awk`、`sed`、`column`、`python3`（hookのタイムスタンプ用）
 - macOS / Linux / WSL
 
-## 制限事項 (v0.1.3)
+## 制限事項 (v0.1.4)
 
 - shellスクリプトの出力は`VOCA_LOCALE`でko/en/jaにローカライズされます。
 - SKILL.md UIの文字列（AskUserQuestion）は主言語設定によるlocale対応レンダリングをサポートします。

@@ -1,10 +1,14 @@
 {
-  "name": "vocatrack",
-  "version": "0.1.4",
+  "name": "voca",
+  "version": "0.1.5",
   "description": "Local-first vocabulary tracker with TestYourVocab-style level estimation (en/ja/ko).",
   "author": {
     "name": "flame91"
   },
   "license": "CC-BY-SA-4.0",
-  "keywords": ["vocabulary", "language-learning", "cefr"]
+  "keywords": [
+    "vocabulary",
+    "language-learning",
+    "cefr"
+  ]
 }
