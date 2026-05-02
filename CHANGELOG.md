@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.4] - 2026-05-02
+
+### Added
+- `/voca scan` command: standalone trigger for full-transcript vocabulary extraction
+- `/voca scan --status`: check extractor state and queue size
+- 5 new i18n UI string keys: `scan.spawned`, `scan.already_running`, `scan.status_running`, `scan.status_idle`, `scan.status_queue`
+- Project logo (`assets/vocatrack-logo.png`)
+
 ## [0.1.3] - 2026-05-02
 
 ### Changed
@@ -66,6 +74,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Domain and source tag registries with color support
 - CC BY-SA 4.0 license
 
+[0.1.4]: https://github.com/flame91/vocatrack/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/flame91/vocatrack/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/flame91/vocatrack/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/flame91/vocatrack/compare/v0.1.0...v0.1.1

@@ -1,6 +1,6 @@
 ---
 name: voca
-description: Personal vocabulary tracker — adds, queries, rates words; manages tag options (domain/source); processes the Stop-hook candidate queue via interactive picker; scans the current session to backfill missed candidates. Backed by local TSV files. Use when the user says things like "이 단어 저장해줘", "방금 그 단어 모르겠어", "지금까지 추가한 단어 보여줘", "/voca add/list/review/rate/archive/master/restore/domain/source/queue", "단어장 보여줘", "infra 태그 추가해줘", "큐 비워줘", "MCP만 추가하고 나머지는 무시", "지금까지 대화 다시 훑어줘", "이 세션 단어 모아줘", or when the user explicitly asks to record a word, manage vocab tags, accept/reject candidates, or backfill candidates from the current conversation.
+description: Personal vocabulary tracker — adds, queries, rates words; manages tag options (domain/source); processes the Stop-hook candidate queue via interactive picker; scans the current session to backfill missed candidates. Backed by local TSV files. Use when the user says things like "이 단어 저장해줘", "방금 그 단어 모르겠어", "지금까지 추가한 단어 보여줘", "/voca add/list/review/rate/archive/master/restore/domain/source/queue/scan", "단어장 보여줘", "infra 태그 추가해줘", "큐 비워줘", "MCP만 추가하고 나머지는 무시", "지금까지 대화 다시 훑어줘", "이 세션 단어 모아줘", "세션 스캔해줘", or when the user explicitly asks to record a word, manage vocab tags, accept/reject candidates, or backfill candidates from the current conversation.
 ---
 
 # Voca Tracker
@@ -68,6 +68,11 @@ Use the corresponding column below for all AskUserQuestion text. Fallback to `en
 | lang.ja_desc | ja 측정 | ja measurement | ja 測定 |
 | lang.en_desc | en 측정 | en measurement | en 測定 |
 | terminal.width_question | 대략적 터미널 폭은? | Approximate terminal width? | ターミナル幅はおよそ？ |
+| scan.spawned | 전체 대화 추출을 시작했습니다 (~30-60s). 완료 후 /voca queue 실행. | Spawned full-transcript extraction (~30-60s). Run /voca queue when ready. | 全会話の抽出を開始しました (~30-60秒)。完了後 /voca queue を実行。 |
+| scan.already_running | 추출이 이미 진행 중입니다. 잠시 후 /voca queue 실행. | Extraction already in progress. Run /voca queue shortly. | 抽出はすでに進行中です。しばらく後に /voca queue を実行。 |
+| scan.status_running | 추출기 실행 중. | Extractor running. | 抽出器実行中。 |
+| scan.status_idle | 추출기 대기 중. | Extractor idle. | 抽出器待機中。 |
+| scan.status_queue | 큐: %d개 대기 중. | Queue: %d pending. | キュー: %d件待機中。 |
 
 ## Storage
 
@@ -219,7 +224,7 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
    - Reply 1 line. Split rejected into knew vs skip when both exist: `Accepted: A (tag1,tag2), B. Rejected (knew): C, D. Rejected (skip): E. Queue: N remaining.` Omit the empty groups.
 6. **Main context** passes the subagent's 1-line reply through verbatim. If more unshown candidates remain (i.e. N was capped at 15), ask in plain text: `[queue.continue]` (no GUI).
 
-### Scan workflow (invoked by `/voca queue` when empty, or by natural language "collect words from this session" / "이 세션 단어 모아줘")
+### Scan workflow (invoked by `/voca scan`, `/voca queue` when empty, or by natural language "collect words from this session" / "이 세션 단어 모아줘")
 
 **Async-only.** The previous in-context default path is removed — scanning the user's main conversation in-line polluted the working context. All scans now run in a separate process via `voca-extract-async.sh` (Haiku via `claude -p`) and dedup against `voca.tsv` automatically.
 
@@ -229,9 +234,30 @@ LATEST=$(ls -t ~/.claude/projects/-${PWD//\//-}/*.jsonl 2>/dev/null | head -1)
 [[ -z "$LATEST" ]] && LATEST=$(ls -t ~/.claude/projects/*/*.jsonl 2>/dev/null | head -1)
 nohup bash ${CLAUDE_PLUGIN_ROOT}/hooks/voca-extract-async.sh "$LATEST" full >>${CLAUDE_PLUGIN_DATA}/voca-hook.log 2>&1 &
 ```
-Reply: `Spawned full-transcript extraction (~30-60s). /voca queue when ready.`
+Check the lock directory first:
+- If `${CLAUDE_PLUGIN_DATA}/.voca-extract.lock.d` exists and was created < 120s ago → reply `[scan.already_running]` and skip spawning.
+- Otherwise → spawn as above, reply `[scan.spawned]`. If `voca-candidates.json` already has pending entries, append: `[scan.status_queue]` with the count.
 
 The async hook (`voca-extract-async.sh`) already filters candidates against the full `voca.tsv` regardless of status/rating, so no additional dedup is required here.
+
+#### Scan status (`/voca scan --status`)
+
+Check extractor state and report queue size:
+
+```bash
+# Running?
+if [[ -d "${CLAUDE_PLUGIN_DATA}/.voca-extract.lock.d" ]]; then
+  STATUS="[scan.status_running]"
+else
+  STATUS="[scan.status_idle]"
+fi
+# Last activity
+LAST=$(tail -1 "${CLAUDE_PLUGIN_DATA}/voca-hook.log" 2>/dev/null || echo "(no log)")
+# Queue size
+PENDING=$(jq '.pending | length' "${CLAUDE_PLUGIN_DATA}/voca-candidates.json" 2>/dev/null || echo 0)
+```
+
+Reply: `$STATUS` + last activity line + `[scan.status_queue]` with `$PENDING`.
 
 ### Clear queue (natural language — "clear the queue" / "큐 비워줘")
 
