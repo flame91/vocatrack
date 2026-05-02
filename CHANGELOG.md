@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.3] - 2026-05-02
+
+### Changed
+- **Service rebrand**: repo renamed from `voca-plugin` to `vocatrack`
+- plugin.json name changed from `voca` to `vocatrack`
+- All README and CHANGELOG URLs updated to `github.com/flame91/vocatrack`
+
 ## [0.1.2] - 2026-05-02
 
 ### Added
@@ -59,6 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Domain and source tag registries with color support
 - CC BY-SA 4.0 license
 
-[0.1.2]: https://github.com/flame91/voca-plugin/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/flame91/voca-plugin/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/flame91/voca-plugin/releases/tag/v0.1.0
+[0.1.3]: https://github.com/flame91/vocatrack/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/flame91/vocatrack/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/flame91/vocatrack/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/flame91/vocatrack/releases/tag/v0.1.0

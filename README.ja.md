@@ -7,7 +7,7 @@
 ## インストール
 
 ```text
-/plugin marketplace add https://github.com/flame91/voca-plugin
+/plugin marketplace add https://github.com/flame91/vocatrack
 /plugin install voca@flame91-voca-marketplace
 ```
 
@@ -59,7 +59,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 - `bash` 4+、`jq`、`awk`、`sed`、`column`、`python3`（hookのタイムスタンプ用）
 - macOS / Linux / WSL
 
-## 制限事項 (v0.1.2)
+## 制限事項 (v0.1.3)
 
 - shellスクリプトの出力は`VOCA_LOCALE`でko/en/jaにローカライズされます。
 - SKILL.md UIの文字列（AskUserQuestion）は主言語設定によるlocale対応レンダリングをサポートします。

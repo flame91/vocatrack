@@ -7,7 +7,7 @@ Local-first vocabulary tracker with TestYourVocab-style level estimation for Eng
 ## Install
 
 ```text
-/plugin marketplace add https://github.com/flame91/voca-plugin
+/plugin marketplace add https://github.com/flame91/vocatrack
 /plugin install voca@flame91-voca-marketplace
 ```
 
@@ -59,7 +59,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 - `bash` 4+, `jq`, `awk`, `sed`, `column`, `python3` (for hook timestamps)
 - macOS / Linux / WSL
 
-## Limitations (v0.1.2)
+## Limitations (v0.1.3)
 
 - Shell script outputs are localized (ko/en/ja) via `VOCA_LOCALE`.
 - SKILL.md UI strings (AskUserQuestion) support locale-aware rendering via the primary language setting.
