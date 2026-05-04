@@ -11,3 +11,52 @@ level.test.header	%s テスト
 level.test.question	知っている単語をチェックしてください ({stage}, {round}/{total}, q{qnum}).
 level.show.stale_hint	%s 最終測定 %s日前 — /voca level test %s 推奨
 queue.select_all_known	このページの全単語を知っています
+stats.header	═══ Voca 統計 (%s 時点) ════════════════════════════════════
+stats.summary	計 %s 語 · 候補抽出 %s (14日) · キュー %s
+stats.lifecycle	状態
+stats.rating	評価
+stats.daily	直近 7日のアクティビティ (%s → %s)
+stats.daily.total	合計 %s
+stats.velocity	速度 (7日平均): +%s 追加/日 · +%s マスター/日
+stats.streaks	連続: 追加 %s日 · マスター %s日
+stats.ttm	マスター所要時間: %s
+stats.ttm.value	%s日 (n=%s)
+stats.ttm.na	測定不可
+stats.top_domains	上位ドメイン
+stats.top_sources	上位ソース
+stats.lang	言語分布
+stats.hook	Hook (直近14日)
+stats.hook.precision	  精度     %s   (抽出 %s, 採用 %s, 却下 %s, 待機 %s)
+stats.hook.latency	  遅延     p50 %s · p95 %s
+stats.hook.via	  経路     auto-hook %s · manual %s · review %s · import %s
+stats.hook.commands	  コマンド %s
+stats.hook.reject_reasons	  主な却下理由
+stats.top_seen	出現回数上位
+stats.stale	未閲覧 (14日超)
+stats.stale.none	  (なし — 全アクティブ単語が14日以内に閲覧)
+stats.stale.last_seen	最終閲覧
+stats.none	  (なし)
+level.title	語彙レベル
+level.row.not_measured	未測定
+level.row.not_selected	未選択
+level.row.tested	測定 %s
+level.row.stale_marker	(stale)
+level.row.delta	(+%s 以降)
+manage.select_question	操作する単語を選んでください
+manage.no_selection	選択なし — 終了。
+manage.action_question	選択した %d 語にどの操作を適用？
+manage.action.memorized	memorized
+manage.action.memorized_desc	暗記済 → mastered に自動昇格
+manage.action.learning	learning
+manage.action.learning_desc	まだ学習中 (active のまま)
+manage.action.unsure	unsure
+manage.action.unsure_desc	いったんパス、後で再確認
+manage.action.master	master
+manage.action.master_desc	手動で mastered に昇格 (rating は変更しない)
+manage.action.archive	archive
+manage.action.archive_desc	ソフト削除 (status=archived)
+manage.action.cancel	cancel
+manage.action.cancel_desc	何もせず終了
+manage.cancelled	管理キャンセル。
+manage.continue	残り %d 語も管理しますか？
+manage.done	完了 — %d 語に %s を適用。

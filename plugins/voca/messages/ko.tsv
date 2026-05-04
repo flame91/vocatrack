@@ -11,3 +11,52 @@ level.test.header	%s 테스트
 level.test.question	아는 단어를 체크하세요 ({stage}, {round}/{total}, q{qnum}).
 level.show.stale_hint	%s 마지막 측정 %s일 전 — /voca level test %s 권장
 queue.select_all_known	이 페이지의 모든 단어를 알고 있음
+stats.header	═══ Voca 통계 (%s 기준) ════════════════════════════════════
+stats.summary	총 %s 단어 · 후보 추출 %s (14일) · 대기열 %s
+stats.lifecycle	상태
+stats.rating	평가
+stats.daily	최근 7일 활동 (%s → %s)
+stats.daily.total	합계 %s
+stats.velocity	속도 (7일 평균): +%s 추가/일 · +%s 마스터/일
+stats.streaks	연속: 추가 %s일 · 마스터 %s일
+stats.ttm	마스터 평균 소요: %s
+stats.ttm.value	%s일 (n=%s)
+stats.ttm.na	측정 불가
+stats.top_domains	상위 도메인
+stats.top_sources	상위 소스
+stats.lang	언어 분포
+stats.hook	Hook (최근 14일)
+stats.hook.precision	  정확도   %s   (추출 %s, 수용 %s, 거절 %s, 대기 %s)
+stats.hook.latency	  지연     p50 %s · p95 %s
+stats.hook.via	  경로     auto-hook %s · manual %s · review %s · import %s
+stats.hook.commands	  명령     %s
+stats.hook.reject_reasons	  주요 거절 사유
+stats.top_seen	빈도 상위
+stats.stale	비활성 (14일 초과)
+stats.stale.none	  (없음 — 모든 활성 단어가 14일 이내에 노출)
+stats.stale.last_seen	마지막 노출
+stats.none	  (없음)
+level.title	어휘 레벨
+level.row.not_measured	미측정
+level.row.not_selected	미선택
+level.row.tested	측정 %s
+level.row.stale_marker	(stale)
+level.row.delta	(+%s 이후)
+manage.select_question	관리할 단어를 선택하세요
+manage.no_selection	선택된 단어 없음 — 종료.
+manage.action_question	선택한 %d개 단어에 적용할 작업은?
+manage.action.memorized	memorized
+manage.action.memorized_desc	암기 완료 → mastered 자동 승격
+manage.action.learning	learning
+manage.action.learning_desc	아직 학습 중 (active 유지)
+manage.action.unsure	unsure
+manage.action.unsure_desc	일단 패스, 나중에 재검토
+manage.action.master	master
+manage.action.master_desc	mastered로 수동 승격 (rating 변경 없음)
+manage.action.archive	archive
+manage.action.archive_desc	소프트 삭제 (status=archived)
+manage.action.cancel	cancel
+manage.action.cancel_desc	아무 작업도 하지 않고 종료
+manage.cancelled	관리 취소.
+manage.continue	남은 %d개도 관리할까요?
+manage.done	완료 — %d개 단어에 %s 적용.

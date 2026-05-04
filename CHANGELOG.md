@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.10] - 2026-05-04
+
+### Added
+- `/voca list --manage` (alias `-m`): interactive bulk picker — multi-select rows from the table via AskUserQuestion, then apply `memorized` / `learning` / `unsure` / `master` / `archive` in one round (paginates 16 words per round)
+- `list.sh --json`: emit filtered rows as a JSON array (`word`, `lang`, `meaning`, `rating`, `status`); used internally by the Manage flow
+
+### Changed
+- i18n locale resolution now consults `voca-profile.json` primary language ahead of `$LANG` / `$LC_ALL` — users on neutral locales (`C.UTF-8`, `en_US`) get their chosen UI language without exporting `VOCA_LOCALE`
+- Migrated remaining hardcoded UI strings in `level-show.sh` and `stats.sh` to message keys (`Vocabulary level`, `not measured`, `not selected`, `(stale)`, `(+N since)`, `tested`, `(none)`, `n/a`, time-to-master row)
+
 ## [0.1.9] - 2026-05-03
 
 ### Added

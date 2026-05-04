@@ -13,7 +13,7 @@ INLINE=0
 if [[ "${1:-}" == "--inline" ]]; then INLINE=1; fi
 
 if [[ ! -f "$PROFILE_PATH" ]]; then
-  echo "Vocabulary level"
+  t level.title
   printf '  '; t profile.empty
   exit 0
 fi
@@ -27,9 +27,12 @@ render_row() {
   lang_upper=$(printf '%s' "$lang" | tr '[:lower:]' '[:upper:]')
   local lang_obj
   lang_obj=$(printf '%s' "$PROFILE" | jq -c --arg l "$lang" '.languages[$l] // null')
+  local lbl_not_measured lbl_not_selected
+  lbl_not_measured=$(ti level.row.not_measured)
+  lbl_not_selected=$(ti level.row.not_selected)
 
   if [[ "$lang_obj" == "null" ]]; then
-    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "not measured" "/voca level test $lang"
+    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "$lbl_not_measured" "/voca level test $lang"
     return
   fi
 
@@ -50,28 +53,29 @@ render_row() {
   fi
 
   if [[ "$spoken" != "true" ]]; then
-    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "not selected" ""
+    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "$lbl_not_selected" ""
     return
   fi
 
   if [[ -z "$estimated" || -z "$tested" ]]; then
-    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "not measured" "/voca level test $lang"
+    printf '  %-3s  %-7s  %-26s  %s\n' "$lang_upper" "─────" "$lbl_not_measured" "/voca level test $lang"
     return
   fi
 
-  local size_fmt mem_now mem_delta days extra
+  local size_fmt mem_now mem_delta days extra tested_lbl
   size_fmt=$(format_thousands "$estimated")
   mem_now=$(count_memorized_for_lang "$lang")
   mem_delta=$(( mem_now - mid_baseline ))
   (( mem_delta < 0 )) && mem_delta=0
   days=$(days_since "$tested")
-  extra="(+${mem_delta} since)"
+  extra=$(ti level.row.delta "$mem_delta")
   if (( days >= 90 )); then
-    extra="${extra} (stale)"
+    extra="${extra} $(ti level.row.stale_marker)"
   fi
+  tested_lbl=$(ti level.row.tested "$tested")
 
-  printf '  %-3s  %-7s  %-26s  tested %s  %s\n' \
-    "$lang_upper" "$size_fmt" "$band" "$tested" "$extra"
+  printf '  %-3s  %-7s  %-26s  %s  %s\n' \
+    "$lang_upper" "$size_fmt" "$band" "$tested_lbl" "$extra"
   # Percentile reference line (skipped when missing — pre-Stage 3 records).
   if [[ -n "$pctl" ]]; then
     local pct_only ref_only
@@ -84,7 +88,7 @@ render_row() {
   fi
 }
 
-echo "Vocabulary level"
+t level.title
 for lang in en ja ko; do
   render_row "$lang"
 done

@@ -3,6 +3,7 @@
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
+. "$SCRIPT_DIR/lib-i18n.sh"
 
 TODAY=$(date -u +%Y-%m-%d)
 
@@ -69,7 +70,8 @@ for ((i = ${#MASTERED_COUNTS[@]} - 1; i >= 0; i--)); do
 done
 
 # --- 6. Time-to-master (avg days from first_seen_at -> mastered_at) ------
-TTM=$(awk -F'\t' $AWK_COL_VARS '
+# awk emits "<avg> <count>" (or empty when count==0); bash applies i18n.
+TTM_RAW=$(awk -F'\t' $AWK_COL_VARS '
   function to_epoch(d,    cmd, e) {
     cmd = "date -u -j -f %Y-%m-%d \"" d "\" +%s 2>/dev/null"
     cmd | getline e; close(cmd)
@@ -79,28 +81,32 @@ TTM=$(awk -F'\t' $AWK_COL_VARS '
     a = to_epoch($C_FIRST_SEEN); b = to_epoch($C_MASTERED_AT)
     if (a > 0 && b >= a) { total += (b - a) / 86400; count++ }
   }
-  END {
-    if (count > 0) printf "%.1f days (n=%d)", total/count, count
-    else printf "n/a"
-  }
+  END { if (count > 0) printf "%.1f %d", total/count, count }
 ' "$WORDS_TSV")
+if [[ -z "$TTM_RAW" ]]; then
+  TTM=$(ti stats.ttm.na)
+else
+  TTM=$(ti stats.ttm.value "${TTM_RAW% *}" "${TTM_RAW##* }")
+fi
 
 # --- 7. Top domains / sources / lang ---------------------------------------
+NONE_LBL=$(ti stats.none)
+
 TOP_DOMAINS=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_DOMAIN!="" && $C_DOMAIN!="[]" { print $C_DOMAIN }' "$WORDS_TSV" \
   | jq -r '.[]?' 2>/dev/null \
   | sort | uniq -c | sort -rn | head -5 \
   | awk '{ printf "  %-12s %d\n", $2, $1 }')
-[[ -z "$TOP_DOMAINS" ]] && TOP_DOMAINS="  (none)"
+[[ -z "$TOP_DOMAINS" ]] && TOP_DOMAINS="$NONE_LBL"
 
 TOP_SOURCES=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_SOURCE!="" { print $C_SOURCE }' "$WORDS_TSV" \
   | sort | uniq -c | sort -rn | head -5 \
   | awk '{ printf "  %-12s %d\n", $2, $1 }')
-[[ -z "$TOP_SOURCES" ]] && TOP_SOURCES="  (none)"
+[[ -z "$TOP_SOURCES" ]] && TOP_SOURCES="$NONE_LBL"
 
 LANG_DIST=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_LANG!="" { print $C_LANG }' "$WORDS_TSV" \
   | sort | uniq -c | sort -rn \
   | awk '{ printf "  %-6s %d\n", $2, $1 }')
-[[ -z "$LANG_DIST" ]] && LANG_DIST="  (none)"
+[[ -z "$LANG_DIST" ]] && LANG_DIST="$NONE_LBL"
 
 # --- 8. Hook (last 14d) ----------------------------------------------------
 CUTOFF=$(date_offset 14)
@@ -138,24 +144,25 @@ VIA_IMPORT=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_VIA=="import"'    "$WORDS_TSV"
 COMMANDS_DIST=$(awk -F'\t' -v c="$CUTOFF" 'NR>1 && substr($2,1,10) >= c && $5!="" {print $5}' "$LOG_TSV" \
   | sort | uniq -c | sort -rn | head -5 \
   | awk '{ printf "%s %d", $2, $1; if (NR < 5) printf " · " }')
-[[ -z "$COMMANDS_DIST" ]] && COMMANDS_DIST="(none)"
+[[ -z "$COMMANDS_DIST" ]] && COMMANDS_DIST="$(ti stats.none)"
 
 # --- 11. top rejected reasons ----------------------------------------------
 REJECT_REASONS=$(awk -F'\t' -v c="$CUTOFF" 'NR>1 && substr($2,1,10) >= c && $4!="" {print $4}' "$LOG_TSV" \
   | sort | uniq -c | sort -rn | head -3 \
   | awk '{ reason = $2; for (i=3; i<=NF; i++) reason = reason " " $i; printf "    %s — %d\n", reason, $1 }')
-[[ -z "$REJECT_REASONS" ]] && REJECT_REASONS="    (none)"
+[[ -z "$REJECT_REASONS" ]] && REJECT_REASONS="    $(ti stats.none)"
 
 # --- 12. top by seen_count -------------------------------------------------
 TOP_SEEN=$(awk -F'\t' $AWK_COL_VARS 'NR>1 && $C_WORD!=""' "$WORDS_TSV" | sort -t$'\t' -k${C_SEEN},${C_SEEN}nr | head -5 \
   | awk -F'\t' $AWK_COL_VARS '{ printf "  %-15s %d×\n", $C_WORD, $C_SEEN }')
-[[ -z "$TOP_SEEN" ]] && TOP_SEEN="  (none)"
+[[ -z "$TOP_SEEN" ]] && TOP_SEEN="$NONE_LBL"
 
 # --- 13. stale active (>14d since last_seen_at) ----------------------------
+LAST_SEEN_LBL=$(ti stats.stale.last_seen)
 STALE=$(awk -F'\t' $AWK_COL_VARS -v c="$CUTOFF" 'NR>1 && ($C_STATUS=="active" || $C_STATUS=="") && $C_LAST_SEEN!="" && $C_LAST_SEEN < c { print $C_WORD "\t" $C_LAST_SEEN }' "$WORDS_TSV" \
   | sort -t$'\t' -k2 | head -5 \
-  | awk -F'\t' '{ printf "  %-15s last seen %s\n", $1, $2 }')
-[[ -z "$STALE" ]] && STALE="  (none — all active words seen within 14d)"
+  | awk -F'\t' -v lbl="$LAST_SEEN_LBL" '{ printf "  %-15s %s %s\n", $1, lbl, $2 }')
+[[ -z "$STALE" ]] && STALE="$(ti stats.stale.none)"
 
 # --- print -----------------------------------------------------------------
 
@@ -172,42 +179,46 @@ if [[ -n "$LEVEL_BLOCK" ]]; then
   printf '%s\n\n' "$LEVEL_BLOCK"
 fi
 
-cat <<EOF
-═══ Voca Stats (as of ${TODAY}) ════════════════════════════════════
-Total: ${TOTAL} words · ${EXTRACTED} candidates extracted (14d) · queue ${PENDING}
+HDR_LIFECYCLE=$(ti stats.lifecycle)
+HDR_RATING=$(ti stats.rating)
+TOTAL_LBL_ADDED=$(ti stats.daily.total "$ADDED_SUM")
+TOTAL_LBL_MASTERED=$(ti stats.daily.total "$MASTERED_SUM")
+TOTAL_LBL_ARCHIVED=$(ti stats.daily.total "$ARCHIVED_SUM")
 
-Lifecycle                Rating
-  active    ${ACTIVE}              memorized ${MEMORIZED}
-  mastered  ${MASTERED}              learning  ${LEARNING}
-  archived  ${ARCHIVED}              unsure    ${UNSURE}
-                           unrated   ${UNRATED}
-
-Daily activity (last 7d, ${DATES[0]} → ${DATES[6]})
-  added     $(sparkline "${ADDED_COUNTS[@]}")   total ${ADDED_SUM}   (${ADDED_COUNTS[*]})
-  mastered  $(sparkline "${MASTERED_COUNTS[@]}")   total ${MASTERED_SUM}   (${MASTERED_COUNTS[*]})
-  archived  $(sparkline "${ARCHIVED_COUNTS[@]}")   total ${ARCHIVED_SUM}   (${ARCHIVED_COUNTS[*]})
-
-Velocity (7d avg): +${ADD_AVG} added/day · +${MAS_AVG} mastered/day
-Streaks: added ${ADDED_STREAK}d · mastered ${MASTERED_STREAK}d
-Time-to-master: ${TTM}
-
-Top domains
-${TOP_DOMAINS}
-Top sources
-${TOP_SOURCES}
-Lang
-${LANG_DIST}
-
-Hook (last 14d)
-  precision  ${PRECISION}   (extracted ${EXTRACTED}, accepted ${ACCEPTED}, rejected ${REJECTED}, pending ${PENDING})
-  latency    p50 ${LAT_P50} · p95 ${LAT_P95}
-  via        auto-hook ${VIA_AUTO} · manual ${VIA_MANUAL} · review ${VIA_REVIEW} · import ${VIA_IMPORT}
-  commands   ${COMMANDS_DIST}
-  top reject reasons
-${REJECT_REASONS}
-
-Top by seen_count
-${TOP_SEEN}
-Stale active (>14d)
-${STALE}
-EOF
+t stats.header "$TODAY"
+t stats.summary "$TOTAL" "$EXTRACTED" "$PENDING"
+echo
+printf '%s                %s\n' "$HDR_LIFECYCLE" "$HDR_RATING"
+printf '  active    %s              memorized %s\n' "$ACTIVE" "$MEMORIZED"
+printf '  mastered  %s              learning  %s\n' "$MASTERED" "$LEARNING"
+printf '  archived  %s              unsure    %s\n' "$ARCHIVED" "$UNSURE"
+printf '                           unrated   %s\n' "$UNRATED"
+echo
+t stats.daily "${DATES[0]}" "${DATES[6]}"
+printf '  added     %s   %s   (%s)\n'    "$(sparkline "${ADDED_COUNTS[@]}")"    "$TOTAL_LBL_ADDED"    "${ADDED_COUNTS[*]}"
+printf '  mastered  %s   %s   (%s)\n'    "$(sparkline "${MASTERED_COUNTS[@]}")" "$TOTAL_LBL_MASTERED" "${MASTERED_COUNTS[*]}"
+printf '  archived  %s   %s   (%s)\n'    "$(sparkline "${ARCHIVED_COUNTS[@]}")" "$TOTAL_LBL_ARCHIVED" "${ARCHIVED_COUNTS[*]}"
+echo
+t stats.velocity "$ADD_AVG" "$MAS_AVG"
+t stats.streaks  "$ADDED_STREAK" "$MASTERED_STREAK"
+t stats.ttm "$TTM"
+echo
+t stats.top_domains
+printf '%s\n' "$TOP_DOMAINS"
+t stats.top_sources
+printf '%s\n' "$TOP_SOURCES"
+t stats.lang
+printf '%s\n' "$LANG_DIST"
+echo
+t stats.hook
+t stats.hook.precision "$PRECISION" "$EXTRACTED" "$ACCEPTED" "$REJECTED" "$PENDING"
+t stats.hook.latency   "$LAT_P50" "$LAT_P95"
+t stats.hook.via       "$VIA_AUTO" "$VIA_MANUAL" "$VIA_REVIEW" "$VIA_IMPORT"
+t stats.hook.commands  "$COMMANDS_DIST"
+t stats.hook.reject_reasons
+printf '%s\n' "$REJECT_REASONS"
+echo
+t stats.top_seen
+printf '%s\n' "$TOP_SEEN"
+t stats.stale
+printf '%s\n' "$STALE"

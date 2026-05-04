@@ -11,3 +11,52 @@ level.test.header	%s Test
 level.test.question	Check the words you know ({stage}, {round}/{total}, q{qnum}).
 level.show.stale_hint	%s last measured %s days ago — /voca level test %s recommended
 queue.select_all_known	I know all the words on this page
+stats.header	═══ Voca Stats (as of %s) ════════════════════════════════════
+stats.summary	Total: %s words · %s candidates extracted (14d) · queue %s
+stats.lifecycle	Lifecycle
+stats.rating	Rating
+stats.daily	Daily activity (last 7d, %s → %s)
+stats.daily.total	total %s
+stats.velocity	Velocity (7d avg): +%s added/day · +%s mastered/day
+stats.streaks	Streaks: added %sd · mastered %sd
+stats.ttm	Time-to-master: %s
+stats.ttm.value	%s days (n=%s)
+stats.ttm.na	n/a
+stats.top_domains	Top domains
+stats.top_sources	Top sources
+stats.lang	Lang
+stats.hook	Hook (last 14d)
+stats.hook.precision	  precision  %s   (extracted %s, accepted %s, rejected %s, pending %s)
+stats.hook.latency	  latency    p50 %s · p95 %s
+stats.hook.via	  via        auto-hook %s · manual %s · review %s · import %s
+stats.hook.commands	  commands   %s
+stats.hook.reject_reasons	  top reject reasons
+stats.top_seen	Top by seen_count
+stats.stale	Stale active (>14d)
+stats.stale.none	  (none — all active words seen within 14d)
+stats.stale.last_seen	last seen
+stats.none	  (none)
+level.title	Vocabulary level
+level.row.not_measured	not measured
+level.row.not_selected	not selected
+level.row.tested	tested %s
+level.row.stale_marker	(stale)
+level.row.delta	(+%s since)
+manage.select_question	Select words to act on
+manage.no_selection	Nothing selected — done.
+manage.action_question	What action for the %d selected word(s)?
+manage.action.memorized	memorized
+manage.action.memorized_desc	Mark as memorized → auto-promote to mastered
+manage.action.learning	learning
+manage.action.learning_desc	Still learning, keep active
+manage.action.unsure	unsure
+manage.action.unsure_desc	Pass for now, revisit later
+manage.action.master	master
+manage.action.master_desc	Promote to mastered (no rating change)
+manage.action.archive	archive
+manage.action.archive_desc	Soft-delete (status=archived)
+manage.action.cancel	cancel
+manage.action.cancel_desc	Do nothing, exit
+manage.cancelled	Manage cancelled.
+manage.continue	Manage %d more?
+manage.done	Done — applied %s to %d word(s).
