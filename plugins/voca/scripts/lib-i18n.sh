@@ -4,9 +4,13 @@
 #   . "$SCRIPT_DIR/lib-i18n.sh"
 #
 # Locale resolution (first non-empty wins):
-#   1. $VOCA_LOCALE          — explicit override (ko|en|ja)
-#   2. $LANG / $LC_ALL       — system locale (e.g. ko_KR.UTF-8 -> ko)
-#   3. en                    — fallback
+#   1. $VOCA_LOCALE                       — explicit override (ko|en|ja)
+#   2. voca-profile.json primary language — set via /voca config (primary=true)
+#   3. $LANG / $LC_ALL                    — system locale (e.g. ko_KR.UTF-8 -> ko)
+#   4. en                                 — fallback
+#
+# Profile primary outranks $LANG so users on neutral locales (C.UTF-8, en_US)
+# get their chosen UI language without needing to export VOCA_LOCALE.
 #
 # Usage:
 #   t profile.empty                  # plain lookup
@@ -22,13 +26,31 @@ if [[ -z "${MESSAGES_DIR:-}" ]]; then
 fi
 
 _voca_resolve_locale() {
-  local raw="${VOCA_LOCALE:-${LC_ALL:-${LANG:-}}}"
+  # 1. Explicit override.
+  case "${VOCA_LOCALE:-}" in
+    ko|en|ja) printf '%s' "$VOCA_LOCALE"; return ;;
+  esac
+  # 2. Profile primary language (set via /voca config).
+  if [[ -f "${PROFILE_PATH:-}" ]] && command -v jq >/dev/null 2>&1; then
+    local p
+    p=$(jq -r '
+      (.languages // {}) | to_entries
+      | map(select(.value.primary == true))
+      | (.[0].key // "")
+    ' "$PROFILE_PATH" 2>/dev/null)
+    case "$p" in
+      ko|en|ja) printf '%s' "$p"; return ;;
+    esac
+  fi
+  # 3. System locale.
+  local raw="${LC_ALL:-${LANG:-}}"
   raw="${raw%%.*}"      # ko_KR.UTF-8 -> ko_KR
   raw="${raw%%_*}"      # ko_KR -> ko
   case "$raw" in
-    ko|en|ja) printf '%s' "$raw" ;;
-    *) printf '%s' "en" ;;
+    ko|en|ja) printf '%s' "$raw"; return ;;
   esac
+  # 4. Fallback.
+  printf '%s' "en"
 }
 
 VOCA_LOCALE_RESOLVED="$(_voca_resolve_locale)"

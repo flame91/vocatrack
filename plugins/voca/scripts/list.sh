@@ -24,13 +24,16 @@ if [[ ${#COLUMNS[@]} -eq 0 ]]; then
 fi
 
 LANG_FILTER=$(config_get list.default_lang "")
+JSON_MODE=0
 
 # CLI overrides
 for arg in "$@"; do
   case "$arg" in
-    --status=*) STATUS="${arg#--status=}" ;;
-    --lang=*)   LANG_FILTER="${arg#--lang=}" ;;
-    [0-9]*)     N="$arg" ;;
+    --status=*)  STATUS="${arg#--status=}" ;;
+    --lang=*)    LANG_FILTER="${arg#--lang=}" ;;
+    --json)      JSON_MODE=1 ;;
+    --manage|-m) ;;  # consumed by command router; ignored here
+    [0-9]*)      N="$arg" ;;
   esac
 done
 
@@ -111,11 +114,28 @@ ROWS=$(awk -F'\t' $AWK_COL_VARS -v s="$STATUS" -v l="$LANG_FILTER" '
 ' "$WORDS_TSV" | sort -t$'\t' -k${SORT_K},${SORT_K}${SORT_FLAGS} | head -n "$N")
 
 if [[ -z "$ROWS" ]]; then
+  if [[ "$JSON_MODE" == "1" ]]; then
+    echo "[]"
+    exit 0
+  fi
   if [[ -n "$LANG_FILTER" && "$LANG_FILTER" != "all" ]]; then
     echo "(no entries with status=$STATUS, lang=$LANG_FILTER)"
   else
     echo "(no entries with status=$STATUS)"
   fi
+  exit 0
+fi
+
+if [[ "$JSON_MODE" == "1" ]]; then
+  printf '%s\n' "$ROWS" | jq -R -s '
+    split("\n") | map(select(length>0)) | map(split("\t") | {
+      word:    .[0],
+      lang:    (.[1] // ""),
+      meaning: (.[2] // ""),
+      rating:  (.[11] // ""),
+      status:  (if (.[12] // "") == "" then "active" else .[12] end)
+    })
+  '
   exit 0
 fi
 

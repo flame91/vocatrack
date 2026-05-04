@@ -42,6 +42,18 @@ Use the corresponding column below for all AskUserQuestion text. Fallback to `en
 | queue.select_all_known | 이 페이지의 모든 단어를 알고 있음 | I know all the words on this page | このページの全単語を知っています |
 | queue.select_all_desc | 체크 안 한 나머지 단어를 '이미 알고 있음'으로 reject 처리 | Reject remaining unchecked words as 'already known' | チェックしていない残りを「既知」としてreject |
 | queue.continue | 남은 %d개 더 처리할까요? | Process %d more? | 残り%d語を処理しますか？ |
+| manage.select_question | 관리할 단어를 선택하세요 | Select words to act on | 操作する単語を選んでください |
+| manage.no_selection | 선택된 단어 없음 — 종료. | Nothing selected — done. | 選択なし — 終了。 |
+| manage.action_question | 선택한 %d개 단어에 적용할 작업은? | What action for the %d selected word(s)? | 選択した %d 語にどの操作を適用？ |
+| manage.action.memorized / _desc | memorized / 암기 완료 → mastered 자동 승격 | memorized / Mark as memorized → auto-promote to mastered | memorized / 暗記済 → mastered に自動昇格 |
+| manage.action.learning / _desc | learning / 아직 학습 중 (active 유지) | learning / Still learning, keep active | learning / まだ学習中 (active のまま) |
+| manage.action.unsure / _desc | unsure / 일단 패스, 나중에 재검토 | unsure / Pass for now, revisit later | unsure / いったんパス、後で再確認 |
+| manage.action.master / _desc | master / mastered로 수동 승격 (rating 변경 없음) | master / Promote to mastered (no rating change) | master / 手動で mastered に昇格 (rating は変更しない) |
+| manage.action.archive / _desc | archive / 소프트 삭제 (status=archived) | archive / Soft-delete (status=archived) | archive / ソフト削除 (status=archived) |
+| manage.action.cancel / _desc | cancel / 아무 작업도 하지 않고 종료 | cancel / Do nothing, exit | cancel / 何もせず終了 |
+| manage.cancelled | 관리 취소. | Manage cancelled. | 管理キャンセル。 |
+| manage.continue | 남은 %d개도 관리할까요? | Manage %d more? | 残り %d 語も管理しますか？ |
+| manage.done | 완료 — %d개 단어에 %s 적용. | Done — applied %s to %d word(s). | 完了 — %d 語に %s を適用。 |
 | setup.lang_question | 구사 가능한 언어를 선택하세요 | Select languages you speak | 話せる言語を選択してください |
 | setup.primary_question | meaning을 어떤 언어로 받을까요? | Which language for meanings? | meaningをどの言語で表示しますか？ |
 | config.section_question | 어떤 설정을 조정할까요? | Which settings to adjust? | どの設定を調整しますか？ |
@@ -135,12 +147,52 @@ Hook also dedups against two sources before queuing:
 4. If the word came from the candidate queue, also remove it from `voca-candidates.json` (jq with `del(...)`) and append a row to `voca-candidates-log.tsv` with `accepted=1`, `command_used=voca-add`.
 5. Reply with the 1-line confirmation that `add.sh` already printed (e.g., `Added "ephemeral" — 잠시 동안만 존재하는, 일시적인.`). **Do not echo the JSON or paraphrase the script output.**
 
-### List recent (`/voca list [N] [--status=...] [--lang=...]`)
+### List recent (`/voca list [N] [--status=...] [--lang=...] [--manage|-m]`)
 
 Handled by `voca.md` fast-path (`list.sh`). The script renders a table; pass it through verbatim.
 
 - `--status` filter: `active` (default) / `mastered` / `archived` / `all`
 - `--lang` filter: `en` / `ja` / `ko` / `mixed` / `other` / `all` (omitted = no filter, same as `all`). Default is the value of `list.default_lang` in `voca-config.json` if set.
+- `--manage` / `-m`: after the table, enter the **Manage** picker flow (see below).
+- `--json`: emit filtered rows as a JSON array (`[{word, lang, meaning, rating, status}]`). Used internally by the Manage flow; not user-facing.
+
+### Manage (`/voca list --manage` / `-m`)
+
+AskUserQuestion-based bulk action picker. Runs **after** the table has already been printed by `list.sh` (with `--manage` consumed and ignored).
+
+1. Resolve `UI_LANG=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh primary_lang)`.
+2. Fetch the same row set as JSON, passing the same filters:
+   ```bash
+   ROWS_JSON=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/list.sh --json $FILTER_ARGS)
+   N=$(printf '%s' "$ROWS_JSON" | jq 'length')
+   ```
+   `$FILTER_ARGS` is the original `$ARGUMENTS` with `--manage` and `-m` stripped. If `N == 0`, stop (the table already showed `(no entries...)`).
+3. **Picker round** — take **up to 16** rows for this round. Build **one** AskUserQuestion call (`multiSelect: true` on each question):
+   - Distribute the words across **up to 4 questions** of **2–4 word-options each** (AskUserQuestion enforces `minItems: 2` per question). Suggested distribution: N≤4 → 1q; N=5 → 3+2; N=6 → 3+3; N=7 → 4+3; N=8 → 4+4; N=9 → 3+3+3; N=10 → 4+3+3; N=11 → 4+4+3; N=12 → 4+4+4; N=13 → 4+3+3+3; N=14 → 4+4+3+3; N=15 → 4+4+4+3; N=16 → 4+4+4+4. **N=1 edge case**: skip this step, set `SELECTED=[<word>]` directly, jump to step 4.
+   - Each option: `{label: "<word>", description: "<lang> · <meaning truncated to ~60 chars>"}`.
+   - `question`: `[manage.select_question]` (same on every question).
+   - `header`: `Manage` (truncated per-question if needed).
+4. Collect `SELECTED` = union of selected labels across all questions. If empty → reply `[manage.no_selection]` and stop.
+5. **Action question** — single AskUserQuestion (`multiSelect: false`):
+   - `question`: `[manage.action_question]` (with `%d` = `len(SELECTED)`)
+   - `header`: `Action`
+   - `options` (in this order):
+     1. `{label:"[manage.action.memorized]", description:"[manage.action.memorized_desc]"}`
+     2. `{label:"[manage.action.learning]",  description:"[manage.action.learning_desc]"}`
+     3. `{label:"[manage.action.unsure]",    description:"[manage.action.unsure_desc]"}`
+     4. `{label:"[manage.action.master]",    description:"[manage.action.master_desc]"}`
+     5. `{label:"[manage.action.archive]",   description:"[manage.action.archive_desc]"}`
+     6. `{label:"[manage.action.cancel]",    description:"[manage.action.cancel_desc]"}`
+6. **Dispatch** based on the chosen action — for each `word` in `SELECTED`:
+   - `memorized` → `bash ${CLAUDE_PLUGIN_ROOT}/scripts/rate.sh "$word" memorized`
+   - `learning`  → `bash ${CLAUDE_PLUGIN_ROOT}/scripts/rate.sh "$word" learning`
+   - `unsure`    → `bash ${CLAUDE_PLUGIN_ROOT}/scripts/rate.sh "$word" unsure`
+   - `master`    → `bash ${CLAUDE_PLUGIN_ROOT}/scripts/master.sh "$word"`
+   - `archive`   → `bash ${CLAUDE_PLUGIN_ROOT}/scripts/archive.sh "$word"`
+   - `cancel`    → reply `[manage.cancelled]` and stop.
+   Capture stdout from each script; suppress per-word echoes from the user-facing reply (the summary in step 7 covers the result).
+7. Print **one line**: `[manage.done]` filled with the action label and the count of words processed (e.g., `Done — applied archive to 3 word(s).`).
+8. **Pagination** — if more than 16 rows existed at step 2 and rows remain unprocessed, ask `[manage.continue]` (plain text, no GUI) with `%d` = remaining count. If the user assents, recurse from step 3 with the next batch.
 
 ### Review (`/voca review`)
 
