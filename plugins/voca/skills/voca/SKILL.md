@@ -231,18 +231,26 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
 **`--flush` shortcut**: If the arguments contain `--flush`, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/queue-clear.sh`, pass through its 1-line confirmation, and stop. Do not proceed to the picker flow below.
 
 > **Execution mode (hybrid)**: AskUserQuestion can only render its UI from the main session — a subagent cannot prompt the user. So `/voca queue` is split:
-> - **Main context** runs steps 1–4 (read queue → dedup → mark `shown:true` → AskUserQuestion picker round). These are bash + a single AskUserQuestion call; no per-word inference here.
-> - **A general-purpose subagent** runs steps 5–8 (per-accept inference + `add.sh`, per-reject log append, queue cleanup, 1-line summary). The subagent receives the selections + 15-word payload via its prompt and never calls AskUserQuestion.
+> - **Main context** runs steps 1–3 (single prep-round Bash call → AskUserQuestion picker). The prep call also handles the setup guard, so the global setup check at the top of this skill is **skipped** for `/voca queue` to avoid a redundant Bash round-trip.
+> - **A general-purpose subagent** runs the remaining steps (per-accept inference + `add.sh`, per-reject log append, queue cleanup, 1-line summary). The subagent receives the selections + round payload via its prompt and never calls AskUserQuestion.
 >
 > This isolates the heaviest token cost (per-word inference for `add`) from the main conversation while keeping the picker UI functional. The command .md routing carries the orchestration template.
 
 **Flow:**
 
-1. Read `${CLAUDE_PLUGIN_DATA}/voca-candidates.json`.
-2. **If `pending` is empty** → reply `[queue.empty]` and stop. Do NOT auto-spawn the extractor — the user must run `/voca scan` explicitly.
-3. **Re-dedup**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/queue-dedup.sh` — removes candidates that were added to `voca.tsv` (or marked as already-known) since extraction.
-4. **Filter** `pending` to entries with `shown: false` (unshown only). If no unshown entries remain, reply `[queue.no_new]` and stop. Rationale: the user does not want to be re-prompted for candidates they already saw and dismissed in a previous picker render.
-5. **Picker** — Take **up to 15 unshown candidates** for this round (one AskUserQuestion call can pack max 4 questions × 4 options = 16 slots; one slot is reserved for the `[queue.select_all_known]` option). **Before** invoking AskUserQuestion, set `shown: true` on those entries and persist `voca-candidates.json` immediately, so that even a dismiss-without-response "consumes" the show. Then build **one** AskUserQuestion call with multiple questions (`multiSelect: true` on each):
+1. **Prepare round (single Bash call)**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/queue-prepare-round.sh`. This atomically performs the setup guard, queue read, dedup, `shown:false` filter, and marks the next ≤15 candidates `shown:true` (persisting immediately so a dismiss-without-response still "consumes" the show). Output is JSON:
+   ```
+   {"status":"ok","pending_total":N,"round":[{word,lang,hint},...],"remaining_unshown":M}
+   {"status":"setup_required"}                 # global setup guard
+   {"status":"empty","pending_total":0}        # nothing pending
+   {"status":"no_new","pending_total":N}       # all already shown
+   ```
+2. **Branch on `status`**:
+   - `setup_required` → reply `[setup.required]` and stop.
+   - `empty` → reply `[queue.empty]` and stop. Do NOT auto-spawn the extractor — the user must run `/voca scan` explicitly.
+   - `no_new` → reply `[queue.no_new]` (with `pending_total`) and stop. Rationale: the user does not want to be re-prompted for candidates they already saw and dismissed in a previous picker render.
+   - `ok` → continue to picker.
+3. **Picker** — Distribute `round` into AskUserQuestion questions. One AskUserQuestion call can pack max 4 questions × 4 options = 16 slots; one slot is reserved for the `[queue.select_all_known]` option (max 15 word-options per round). Build **one** AskUserQuestion call with multiple questions (`multiSelect: true` on each):
    - Distribute the N candidates into questions of up to 4 word-options each, in order. Append one extra option `[queue.select_all_known]` (description: `[queue.select_all_desc]`) at the **end of the last question**.
    - **`minItems: 2` guard**: if the last question would end up with the `[queue.select_all_known]` option alone (1 option), pull one word from the previous question into the last one so each question has ≥ 2 options. Concretely:
      - N=1 → `q0=[A, ALL]`
@@ -255,7 +263,7 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
      (ALL = `[queue.select_all_known]` option)
    - Each word-option: `{label:"<word>", description:"<lang> · <hint>"}`
    - question text: `[queue.question]` — same on every question. header: `Voca queue` (truncate per-page if needed).
-6. **Hand off to subagent.** Resolve the user's primary language **before** building the subagent prompt: `PRIMARY=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh primary_lang_name)`. Substitute that string into the `{{PRIMARY}}` placeholder when synthesizing the prompt below. Spawn a `general-purpose` Agent with the resulting prompt. The subagent receives the selections + 15-word payload and processes:
+4. **Hand off to subagent.** Resolve the user's primary language **before** building the subagent prompt: `PRIMARY=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh primary_lang_name)`. Substitute that string into the `{{PRIMARY}}` placeholder when synthesizing the prompt below. Spawn a `general-purpose` Agent with the resulting prompt. The subagent receives the selections + round payload and processes:
 
    ```
    You are processing the result of a /voca queue picker round. The user has already chosen — do NOT call AskUserQuestion or the picker again.
@@ -274,8 +282,8 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
      - rejected_knew:   `<word>\t<now>\t0\tuser marked as already known via picker\tvoca-add\t0\t<lang>\t`
      - rejected_skip:   `<word>\t<now>\t0\tuser skipped via /voca queue UI\tvoca-add\t0\t<lang>\t`
 
-   Cleanup: remove ALL 15 processed words from `${CLAUDE_PLUGIN_DATA}/voca-candidates.json` `pending` (regardless of accept/reject):
-     jq --argjson words '<JSON array of all 15 lowercased words>' '.pending |= map(select(([.word | ascii_downcase] | inside($words)) | not))' ${CLAUDE_PLUGIN_DATA}/voca-candidates.json > tmp && mv tmp ${CLAUDE_PLUGIN_DATA}/voca-candidates.json
+   Cleanup: remove ALL words from this round (≤15) from `${CLAUDE_PLUGIN_DATA}/voca-candidates.json` `pending` (regardless of accept/reject):
+     jq --argjson words '<JSON array of all round words, lowercased>' '.pending |= map(select(([.word | ascii_downcase] | inside($words)) | not))' ${CLAUDE_PLUGIN_DATA}/voca-candidates.json > tmp && mv tmp ${CLAUDE_PLUGIN_DATA}/voca-candidates.json
 
    Reply with EXACTLY ONE LINE in this format (omit empty groups):
      `Accepted: A (tag1,tag2), B. Rejected (knew): X, Y. Rejected (skip): Z. Queue: N remaining.`
@@ -286,9 +294,9 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
    - For each unselected word-option: append a row to `voca-candidates-log.tsv` with `accepted=0`, `command_used="voca-add"`, and `rejected_reason`:
      - if the user selected the `[queue.select_all_known]` option (on the last question's last slot) → `"user marked as already known via picker"` for **all unselected words across all questions in this round** (not just the last question — the option is page-wide)
      - otherwise → `"user skipped via /voca queue UI"`
-   - Remove all 15 shown candidates (regardless of selection) from `voca-candidates.json`.
+   - Remove all round candidates (≤15, regardless of selection) from `voca-candidates.json`.
    - Reply 1 line. Split rejected into knew vs skip when both exist: `Accepted: A (tag1,tag2), B. Rejected (knew): C, D. Rejected (skip): E. Queue: N remaining.` Omit the empty groups.
-7. **Main context** passes the subagent's 1-line reply through verbatim. If more unshown candidates remain (i.e. N was capped at 15), ask in plain text: `[queue.continue]` (no GUI).
+5. **Main context** passes the subagent's 1-line reply through verbatim. If `remaining_unshown > 0` (from step 1), ask in plain text: `[queue.continue]` (no GUI).
 
 ### Scan workflow (invoked by `/voca scan`, `/voca queue` when empty, or by natural language "collect words from this session" / "이 세션 단어 모아줘")
 
