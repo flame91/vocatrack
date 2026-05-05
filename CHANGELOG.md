@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.13] - 2026-05-05
+
+### Added
+- `config.current_marker` UI string (`(현재값)` / `(current)` / `(現在値)`) — registered in both SKILL.md UI Strings table and the 3 message TSVs
+
+### Changed
+- `/voca config` interactive picker now annotates the **current** value with `[config.current_marker]` on the matching option label, so users can see at a glance which choice is in effect:
+  - section (a) `list_columns` — multiSelect markers moved from description (`[✓]/[✗]`) to label suffix on selected options
+  - section (b) `list_options` — reads `config.sh show` once, marks the matching option for `default_n` / `default_status` / `sort` / `widths.meaning`
+  - section (c) `picker_scan` — same pattern for `picker.max_per_round` / `scan.model` / `scan.dedup_log_knew`
+  - section (e) `primary_change` — `[✓]` unified to `[config.current_marker]`
+- `/voca config` Optimize confirm UI (section (d)) now uses AskUserQuestion `preview` fields per option (apply / widen / narrow / cancel) — the recommended layout's header preview, plus textual deltas for widen/narrow, render side-by-side so the user can compare before clicking
+
 ## [0.1.12] - 2026-05-05
 
 ### Added

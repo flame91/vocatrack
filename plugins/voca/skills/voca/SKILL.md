@@ -56,6 +56,7 @@ Use the corresponding column below for all AskUserQuestion text. Fallback to `en
 | manage.done | 완료 — %d개 단어에 %s 적용. | Done — applied %s to %d word(s). | 完了 — %d 語に %s を適用。 |
 | setup.lang_question | 구사 가능한 언어를 선택하세요 | Select languages you speak | 話せる言語を選択してください |
 | setup.primary_question | meaning을 어떤 언어로 받을까요? | Which language for meanings? | meaningをどの言語で表示しますか？ |
+| config.current_marker |  (현재값) |  (current) |  (現在値) |
 | config.section_question | 어떤 설정을 조정할까요? | Which settings to adjust? | どの設定を調整しますか？ |
 | config.list_columns | List 컬럼 선택 | List column selection | Listカラム選択 |
 | config.list_columns_desc | /voca list에 표시할 컬럼 | Columns to show in /voca list | /voca listに表示するカラム |
@@ -458,7 +459,7 @@ options:
 **Stage 2 — branch on selection**:
 
 **(a) [config.list_columns]** — 3 questions, multiSelect, 4 options each (12 columns total).
-- Before issuing: read current selection via `bash ${CLAUDE_PLUGIN_ROOT}/scripts/config.sh get list.columns`. For each option, append `[✓]` or `[✗]` to `description` so the user sees the delta.
+- Before issuing: read current selection via `bash ${CLAUDE_PLUGIN_ROOT}/scripts/config.sh get list.columns`. For each option that is **already selected**, append `[config.current_marker]` to its `label`. Unselected options get no marker. (The pre-checked-state API doesn't exist on AskUserQuestion, so the label suffix is the closest visual hint.)
 - Questions (titles unique — suffix `(1/3)` etc.):
   - Q1 (multi): `word`, `lang`, `meaning`, `source`
   - Q2 (multi): `domain`, `seen`, `age`, `via`
@@ -467,6 +468,7 @@ options:
 - Reply 1 line: `Saved list.columns: word,lang,meaning,seen,age,via,status.`
 
 **(b) [config.list_options]** — 4 questions, single-select:
+- Before issuing: read current values once via `CFG=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/config.sh show)` and extract `list.default_n`, `list.default_status`, `list.sort`, `list.widths.meaning` (jq paths). For each question, append `[config.current_marker]` to the option label that matches the current value.
 - Q1: default N → `["10","20","50","100"]` (Other = free integer)
 - Q2: default status → `["active","mastered","archived","all"]`
 - Q3: sort → `["last_seen desc","seen_count desc","first_seen desc","word asc"]`
@@ -480,6 +482,7 @@ options:
 - Reply 1 line listing saved keys.
 
 **(c) [config.picker_scan]** — 3 questions, single-select:
+- Before issuing: read current values once via `CFG=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/config.sh show)` and extract `picker.max_per_round`, `scan.model`, `scan.dedup_log_knew`. For each question, append `[config.current_marker]` to the option label that matches the current value.
 - Q1: picker max_per_round → `["5","10","15"]`
 - Q2: scan model → `["haiku","sonnet","opus"]`
   - haiku: fast & cheap — default. General use.
@@ -507,7 +510,7 @@ Before issuing, fill `<PRIMARY_NAME>` with the result of `bash ${CLAUDE_PLUGIN_R
 
 1. Read spoken languages: `SPOKEN=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh read | jq -r '(.languages // {}) | to_entries | map(select(.value.spoken == true)) | map(.key) | join(",")')`. If empty, reply 1 line: `[config.primary_no_profile]` and exit.
 2. Read current primary: `CURRENT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh primary_lang)`.
-3. Build options dynamically — only include languages that appear in `$SPOKEN`. Label format: `[lang.ko] (ko)` / `[lang.en] (en)` / `[lang.ja] (ja)`. If a language equals `$CURRENT`, append ` [✓]` to the label.
+3. Build options dynamically — only include languages that appear in `$SPOKEN`. Label format: `[lang.ko] (ko)` / `[lang.en] (en)` / `[lang.ja] (ja)`. If a language equals `$CURRENT`, append `[config.current_marker]` to the label.
 4. AskUserQuestion:
    ```
    question: [setup.primary_question]
@@ -529,15 +532,19 @@ End the turn here. (If the user names a width number directly, jump to fallback 
    - Use vision: monospace cell width (px) ÷ terminal body px → char count. Or read where wrap occurs.
    - Ambiguous → **fallback A**: AskUserQuestion `[terminal.width_question]` opts `["80","100","120","140"]` (Other = integer).
    - User stated number directly → **fallback B**: use as-is.
-2. **Compute**: `OUT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/optimize.sh <AVAIL>)`. Paste stdout (JSON line + preview) into reply as a fenced code block.
-3. **Confirm UI** — single AskUserQuestion, header `Voca opt`:
+2. **Compute**: `OUT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/optimize.sh <AVAIL>)`. Paste stdout (JSON line + preview) into reply as a fenced code block. Also capture for use as `preview` content below:
+   - `PREVIEW_APPLY` = the post-blank-line portion of `OUT` (header row at recommended width + the `(N/AVAIL cols, dropped: …)` line). Multi-line monospace.
+   - `PREVIEW_WIDEN` = a 2-3 line text summary describing the widen delta, e.g. `meaning_w: <MW> → <MW+6>\ndomain_w:  <DW> → <DW+6>\n(columns unchanged; total may exceed available)`.
+   - `PREVIEW_NARROW` = mirror of above with `−6` and clamp note (`MW≥12, DW≥10`).
+   - `PREVIEW_CANCEL` = single line, e.g. `(no changes — current settings preserved)`.
+3. **Confirm UI** — single AskUserQuestion, header `Voca opt`. Each option carries a `preview` so the user sees the consequence side-by-side before clicking:
    ```
    question: [optimize.confirm] (fill %d with <AVAIL>)
    options:
-     - {label: [optimize.apply],    description: [optimize.apply_desc]}
-     - {label: [optimize.widen],    description: [optimize.widen_desc]}
-     - {label: [optimize.narrow],   description: [optimize.narrow_desc]}
-     - {label: [optimize.cancel],   description: [optimize.cancel_desc]}
+     - {label: [optimize.apply],    description: [optimize.apply_desc],  preview: <PREVIEW_APPLY>}
+     - {label: [optimize.widen],    description: [optimize.widen_desc],  preview: <PREVIEW_WIDEN>}
+     - {label: [optimize.narrow],   description: [optimize.narrow_desc], preview: <PREVIEW_NARROW>}
+     - {label: [optimize.cancel],   description: [optimize.cancel_desc], preview: <PREVIEW_CANCEL>}
    ```
 4. **Apply**:
    - `[optimize.apply]`: extract `columns` / `meaning_w` / `domain_w` from JSON →

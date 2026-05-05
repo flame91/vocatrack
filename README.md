@@ -102,7 +102,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-from-legacy.sh
 - `bash` 4+, `jq`, `awk`, `sed`, `column`, `python3` (for hook timestamps)
 - macOS / Linux / WSL
 
-## Limitations (v0.1.12)
+## Limitations (v0.1.13)
 
 - Shell script outputs are localized (ko/en/ja) via `VOCA_LOCALE`.
 - SKILL.md UI strings (AskUserQuestion) support locale-aware rendering via the primary language setting.
