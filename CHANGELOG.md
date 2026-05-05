@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.11] - 2026-05-05
+
+### Added
+- `queue-prepare-round.sh`: single-call queue picker prep — handles setup guard, dedup, `shown:false` filter, and marks the next ≤15 candidates `shown:true` atomically, returning a JSON payload (`status`, `pending_total`, `round`, `remaining_unshown`) that the picker consumes directly
+
+### Changed
+- `/voca queue` prep collapsed from 3 separate Bash round-trips (setup check + dedup + mark-shown) into a single call to `queue-prepare-round.sh` — picker UI now appears after one tool round-trip instead of three. Global setup guard is skipped for `/voca queue` since the prep script handles it inline.
+
 ## [0.1.10] - 2026-05-04
 
 ### Added
