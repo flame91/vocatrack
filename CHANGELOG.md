@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.12] - 2026-05-05
+
+### Added
+- `setup-guard.sh`: localized setup-completion guard (`require` / `forbid` modes) — emits the appropriate i18n message on stdout when the guard trips, exits silently otherwise. Used as a one-shot prelude so the model passes output through verbatim instead of resolving message keys
+- `scan-launch.sh`: one-shot `/voca scan` launcher — handles extract-lock detection, transcript resolution, background spawn, and message composition (`scan.already_running` / `scan.spawned` / `scan.status_queue`) all in a single Bash call
+- `queue-prepare-round.sh`: terminal-status JSON outputs (`empty` / `no_new` / `setup_required`) now include a pre-localized `message` field, so callers can pass `.message` through verbatim
+- 7 message keys migrated from `SKILL.md` UI Strings table into `messages/{ko,en,ja}.tsv` so scripts can resolve them via `t()` / `ti()`: `setup.required`, `setup.already_done`, `queue.empty`, `queue.no_new`, `scan.spawned`, `scan.already_running`, `scan.status_queue`
+
+### Changed
+- Global setup guard, `/voca queue` terminal branches, `/voca scan` workflow, and `/voca setup` first-step guard in `SKILL.md` all converted to "run script → pass stdout through verbatim" pattern. Removes per-call message-key resolution turns; reduces LLM round-trips for the common terminal cases
+- `queue-prepare-round.sh` setup guard tightened from `state == pristine` to `state != completed` to match the global guard semantics — `declined` users are now correctly prompted to run `/voca setup` from `/voca queue` as well
+
 ## [0.1.11] - 2026-05-05
 
 ### Added

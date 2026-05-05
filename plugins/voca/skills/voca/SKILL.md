@@ -14,13 +14,13 @@ Local-first vocabulary collection backed by TSV files. No external services, no 
 
 ## Prerequisites
 
-Before any workflow below (except **Setup workflow** itself), check setup completion:
+Before any workflow below (except **Setup workflow** itself), run the setup guard:
 
 ```bash
-SETUP_DONE=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh read | jq -r '.first_run_completed_at // empty')
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup-guard.sh require
 ```
 
-If `$SETUP_DONE` is empty → reply `[setup.required]` and **stop**. Do not proceed with the requested command.
+If the script prints anything on stdout, pass it through verbatim and **stop**. Otherwise (silent) proceed with the requested command. The script handles locale-aware message resolution itself, so the model does not need to look up `[setup.required]` in the UI Strings table.
 
 ## UI Strings
 
@@ -241,15 +241,11 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
 1. **Prepare round (single Bash call)**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/queue-prepare-round.sh`. This atomically performs the setup guard, queue read, dedup, `shown:false` filter, and marks the next ≤15 candidates `shown:true` (persisting immediately so a dismiss-without-response still "consumes" the show). Output is JSON:
    ```
    {"status":"ok","pending_total":N,"round":[{word,lang,hint},...],"remaining_unshown":M}
-   {"status":"setup_required"}                 # global setup guard
-   {"status":"empty","pending_total":0}        # nothing pending
-   {"status":"no_new","pending_total":N}       # all already shown
+   {"status":"setup_required","message":"<localized>"}
+   {"status":"empty","pending_total":0,"message":"<localized>"}
+   {"status":"no_new","pending_total":N,"message":"<localized>"}
    ```
-2. **Branch on `status`**:
-   - `setup_required` → reply `[setup.required]` and stop.
-   - `empty` → reply `[queue.empty]` and stop. Do NOT auto-spawn the extractor — the user must run `/voca scan` explicitly.
-   - `no_new` → reply `[queue.no_new]` (with `pending_total`) and stop. Rationale: the user does not want to be re-prompted for candidates they already saw and dismissed in a previous picker render.
-   - `ok` → continue to picker.
+2. **Branch**: if `status != "ok"` → print `.message` verbatim and stop (rationale for `no_new`: the user does not want to be re-prompted for candidates they already saw and dismissed). Otherwise continue to picker. Do NOT auto-spawn the extractor on `empty` — the user must run `/voca scan` explicitly.
 3. **Picker** — Distribute `round` into AskUserQuestion questions. One AskUserQuestion call can pack max 4 questions × 4 options = 16 slots; one slot is reserved for the `[queue.select_all_known]` option (max 15 word-options per round). Build **one** AskUserQuestion call with multiple questions (`multiSelect: true` on each):
    - Distribute the N candidates into questions of up to 4 word-options each, in order. Append one extra option `[queue.select_all_known]` (description: `[queue.select_all_desc]`) at the **end of the last question**.
    - **`minItems: 2` guard**: if the last question would end up with the `[queue.select_all_known]` option alone (1 option), pull one word from the previous question into the last one so each question has ≥ 2 options. Concretely:
@@ -302,15 +298,9 @@ Allowed colors: gray, brown, orange, yellow, green, blue, purple, pink, red, def
 
 **Async-only.** The previous in-context default path is removed — scanning the user's main conversation in-line polluted the working context. All scans now run in a separate process via `voca-extract-async.sh` (Haiku via `claude -p`) and dedup against `voca.tsv` automatically.
 
-```bash
-LATEST=$(ls -t ~/.claude/projects/-${PWD//\//-}/*.jsonl 2>/dev/null | head -1)
-# fallback if the project-encoded path produced no match:
-[[ -z "$LATEST" ]] && LATEST=$(ls -t ~/.claude/projects/*/*.jsonl 2>/dev/null | head -1)
-nohup bash ${CLAUDE_PLUGIN_ROOT}/hooks/voca-extract-async.sh "$LATEST" full >>${CLAUDE_PLUGIN_DATA}/voca-hook.log 2>&1 &
-```
-Check the lock directory first:
-- If `${CLAUDE_PLUGIN_DATA}/.voca-extract.lock.d` exists and was created < 120s ago → reply `[scan.already_running]` and skip spawning.
-- Otherwise → spawn as above, reply `[scan.spawned]`. If `voca-candidates.json` already has pending entries, append: `[scan.status_queue]` with the count.
+Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/scan-launch.sh` and pass its stdout through verbatim. The script handles all branching internally:
+- If `${CLAUDE_PLUGIN_DATA}/.voca-extract.lock.d` exists and was created < 120s ago → prints `[scan.already_running]` and skips spawning.
+- Otherwise → resolves the latest transcript jsonl, spawns `voca-extract-async.sh` in the background, prints `[scan.spawned]`, and (if the queue already has pending entries) appends `[scan.status_queue]` with the count.
 
 The async hook (`voca-extract-async.sh`) filters candidates against the full `voca.tsv` at extraction time. A second dedup pass runs at queue display time (step 3) to catch words added between extraction and display.
 
@@ -355,7 +345,7 @@ One-time onboarding wizard. Skips the Prerequisites guard (this is the only work
 
 **UI language rule:** For Steps 1–2, use `UI_LANG=en` — the user's primary language is unknown. This applies to **all output**: AskUserQuestion text, narration, and status messages. From Step 3 onward (after primary is set), switch `UI_LANG` to the newly set primary language.
 
-1. **Check if already done**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lib-profile.sh read | jq -r '.first_run_completed_at // empty'`. If non-empty → reply `[setup.already_done]` and stop.
+1. **Check if already done**: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/setup-guard.sh forbid`. If the script prints anything, pass it through verbatim and stop.
 
 2. **Step 1 — Language selection** (multiSelect AskUserQuestion):
    - question: `[setup.lang_question]` · header: `"Voca setup"`
