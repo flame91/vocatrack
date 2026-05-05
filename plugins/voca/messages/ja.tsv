@@ -60,3 +60,10 @@ manage.action.cancel_desc	何もせず終了
 manage.cancelled	管理キャンセル。
 manage.continue	残り %d 語も管理しますか？
 manage.done	完了 — %d 語に %s を適用。
+setup.required	まず /voca setup を実行してください。
+setup.already_done	初期設定は完了済みです。/voca config で変更できます。
+queue.empty	キューが空です。/voca scan で抽出を開始してください。
+queue.no_new	キューに新しい単語はありません (全体: %d語)。
+scan.spawned	全会話の抽出を開始しました (~30-60秒)。完了後 /voca queue を実行。
+scan.already_running	抽出はすでに進行中です。しばらく後に /voca queue を実行。
+scan.status_queue	キュー: %d件待機中。

@@ -19,17 +19,18 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
+. "$SCRIPT_DIR/lib-i18n.sh"
 . "$SCRIPT_DIR/lib-profile.sh"
 
 ROUND_SIZE="${1:-15}"
 
-if [[ "$(profile_first_run_state)" == "pristine" ]]; then
-  jq -n '{status:"setup_required"}'
+if [[ "$(profile_first_run_state)" != "completed" ]]; then
+  jq -n --arg m "$(ti setup.required)" '{status:"setup_required", message:$m}'
   exit 0
 fi
 
 if [[ ! -f "$QUEUE_PATH" ]]; then
-  jq -n '{status:"empty", pending_total:0}'
+  jq -n --arg m "$(ti queue.empty)" '{status:"empty", pending_total:0, message:$m}'
   exit 0
 fi
 
@@ -37,13 +38,14 @@ bash "$SCRIPT_DIR/queue-dedup.sh" >/dev/null 2>&1 || true
 
 PENDING_TOTAL=$(jq '.pending | length' "$QUEUE_PATH" 2>/dev/null || echo 0)
 if [[ "$PENDING_TOTAL" -eq 0 ]]; then
-  jq -n '{status:"empty", pending_total:0}'
+  jq -n --arg m "$(ti queue.empty)" '{status:"empty", pending_total:0, message:$m}'
   exit 0
 fi
 
 UNSHOWN_TOTAL=$(jq '[.pending[] | select(.shown != true)] | length' "$QUEUE_PATH" 2>/dev/null || echo 0)
 if [[ "$UNSHOWN_TOTAL" -eq 0 ]]; then
-  jq -n --argjson t "$PENDING_TOTAL" '{status:"no_new", pending_total:$t}'
+  jq -n --argjson t "$PENDING_TOTAL" --arg m "$(ti queue.no_new "$PENDING_TOTAL")" \
+    '{status:"no_new", pending_total:$t, message:$m}'
   exit 0
 fi
 
