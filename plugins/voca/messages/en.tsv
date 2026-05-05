@@ -67,3 +67,4 @@ queue.no_new	No new words in queue (total: %d).
 scan.spawned	Spawned full-transcript extraction (~30-60s). Run /voca queue when ready.
 scan.already_running	Extraction already in progress. Run /voca queue shortly.
 scan.status_queue	Queue: %d pending.
+config.current_marker	 (current)

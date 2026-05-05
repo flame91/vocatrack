@@ -67,3 +67,4 @@ queue.no_new	큐에 새 단어가 없습니다 (전체 큐: %d개).
 scan.spawned	전체 대화 추출을 시작했습니다 (~30-60s). 완료 후 /voca queue 실행.
 scan.already_running	추출이 이미 진행 중입니다. 잠시 후 /voca queue 실행.
 scan.status_queue	큐: %d개 대기 중.
+config.current_marker	 (현재값)

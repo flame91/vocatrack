@@ -67,3 +67,4 @@ queue.no_new	キューに新しい単語はありません (全体: %d語)。
 scan.spawned	全会話の抽出を開始しました (~30-60秒)。完了後 /voca queue を実行。
 scan.already_running	抽出はすでに進行中です。しばらく後に /voca queue を実行。
 scan.status_queue	キュー: %d件待機中。
+config.current_marker	 (現在値)
